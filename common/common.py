@@ -1,7 +1,7 @@
-import hashlib
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def sha_key(key=None):
-    sha = hashlib.sha1()
-    sha.update(key.encode('utf-8'))
-    return sha.hexdigest()
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
