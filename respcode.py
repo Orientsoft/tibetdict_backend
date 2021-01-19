@@ -1,3 +1,4 @@
+# -*- coding:utf-8
 data = {
     'en-us': {
         '2002': '',
