@@ -1,6 +1,6 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional
-from model.user import UserInDB, UserCreateModel, UserListModel
+from model.user import UserInDB, UserCreateModel, UserListModel, UserResetPasswordModel
 from common.common import generate_salt, get_password_hash
 from config import database_name, user_collection_name
 
@@ -30,3 +30,11 @@ async def get_user_list_by_query_with_page_and_limit(conn: AsyncIOMotorClient, q
 async def count_user_by_query(conn: AsyncIOMotorClient, query: Optional[dict]):
     result = await conn[database_name][user_collection_name].count_documents(query)
     return result
+
+
+async def update_password(conn: AsyncIOMotorClient, query: Optional[dict], password: str):
+    salt = generate_salt()
+    hashed_password = get_password_hash(salt + password)
+    item = {'salt': salt, 'hashed_password': hashed_password}
+    conn[database_name][user_collection_name].update_one(query, {'$set': item})
+    return True
