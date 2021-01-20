@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.status import HTTP_400_BAD_REQUEST
-from model.user import UserCreateModel, User, UserInDB, TokenResponse, UserListResponse
+from model.user import UserCreateModel, User, TokenResponse, UserListResponse
 from common.jwt import get_current_user_authorizer, create_access_token
 from common.mongodb import AsyncIOMotorClient, get_database
 from crud.user import create_user, get_user, get_user_list_by_query_with_page_and_limit, count_user_by_query, \

@@ -49,7 +49,3 @@ class UserListModel(BaseModel):
 class UserListResponse(BaseModel):
     data: List[UserListModel]
     total: int
-
-
-class UserResetPasswordModel(BaseModel):
-    password: str

@@ -1,6 +1,6 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional
-from model.user import UserInDB, UserCreateModel, UserListModel, UserResetPasswordModel
+from model.user import UserInDB, UserCreateModel, UserListModel
 from common.common import generate_salt, get_password_hash
 from config import database_name, user_collection_name
 
