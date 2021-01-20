@@ -7,13 +7,12 @@ from typing import List
 
 class UserBaseModel(BaseModel):
     username: str
-    password: str
     # 0-管理员；1-普通用户
     role: List[int]
 
 
 class UserCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, UserBaseModel):
-    pass
+    password: str
 
 
 class User(UserBaseModel):
