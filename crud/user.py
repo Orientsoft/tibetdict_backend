@@ -1,6 +1,6 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional
-from model.user import UserInDB, UserCreateModel
+from model.user import UserInDB, UserCreateModel, UserListModel
 from common.common import generate_salt, get_password_hash
 from config import database_name, user_collection_name
 
@@ -19,3 +19,14 @@ async def create_user(conn: AsyncIOMotorClient, user: UserCreateModel) -> UserIn
     del db_user['password']
     conn[database_name][user_collection_name].insert_one(db_user)
     return UserInDB(**user.dict())
+
+
+async def get_user_list_by_query_with_page_and_limit(conn: AsyncIOMotorClient, query: Optional[dict], page: int,
+                                                     limit: int):
+    result = conn[database_name][user_collection_name].find(query).skip((page - 1) * limit).limit(limit)
+    return [UserListModel(**x) async for x in result]
+
+
+async def count_user_by_query(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = await conn[database_name][user_collection_name].count_documents(query)
+    return result

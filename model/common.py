@@ -1,7 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel, validator
 import uuid
-from app import app
+from config import timezone
 
 
 class CreatedAtModel(BaseModel):
@@ -9,7 +9,7 @@ class CreatedAtModel(BaseModel):
 
     @validator("createdAt", pre=True, always=True)
     def default_datetime(cls, v, values, **kwargs) -> str:
-        return datetime.now(tz=app.config['timezone']).isoformat()
+        return datetime.now(tz=timezone).isoformat()
 
 
 class UpdatedAtModel(BaseModel):
@@ -17,7 +17,7 @@ class UpdatedAtModel(BaseModel):
 
     @validator("updatedAt", pre=True, always=True)
     def default_datetime(cls, v, values, **kwargs) -> str:
-        return datetime.now(tz=app.config['timezone']).isoformat()
+        return datetime.now(tz=timezone).isoformat()
 
 
 class IDModel(BaseModel):

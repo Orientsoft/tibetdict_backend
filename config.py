@@ -1,7 +1,7 @@
 import pytz
 
 HOST = '0.0.0.0'
-PORT = '5555'
+PORT = 5555
 DEBUG = True
 VERSION = '0.0.1'
 SECRET_KEY = 'welcome1'
@@ -14,4 +14,5 @@ database_name = 'tibetan'
 JWT_TOKEN_PREFIX = "Bearer"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 ALGORITHM = "HS256"
+API_KEY = 'welcome1'
 user_collection_name = 'user'

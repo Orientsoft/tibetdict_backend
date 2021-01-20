@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from respcode import data
 from loguru import logger
 from typing import Union
+from applications.user import router as user_router
 import traceback
 import uvicorn
 
@@ -68,11 +69,11 @@ app.add_event_handler("shutdown", close_mongo_connection)
 app.add_exception_handler(HTTPException, http_error_handler)
 app.add_exception_handler(RequestValidationError, http422_error_handler)
 
-# app.include_router()
+app.include_router(user_router, prefix='/api')
 
 if __name__ == '__main__':
     uvicorn.run(
-        "app.main:app",
+        app="app:app",
         host=HOST,
         port=PORT,
         reload=True,

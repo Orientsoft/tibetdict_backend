@@ -39,4 +39,13 @@ class TokenPayload(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = 'bearer'
-    mobile: str = None
+
+
+class UserListModel(BaseModel):
+    id: str
+    username: str
+
+
+class UserListResponse(BaseModel):
+    data: List[UserListModel]
+    total: int
