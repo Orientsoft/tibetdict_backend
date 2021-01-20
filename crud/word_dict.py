@@ -1,6 +1,6 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional
-from model.word_dict import WordStatDictCreateModel, WordStatDictInDB, WordStatDictUpdateModel
+from model.word_dict import WordStatDictCreateModel, WordStatDictInDB
 from config import database_name, word_stat_dict_collection_name
 
 
@@ -25,7 +25,6 @@ async def count_word_stat_dict_by_query(conn: AsyncIOMotorClient, query: Optiona
     return result
 
 
-async def update_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict],
-                                item: dict):
+async def update_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict], item: dict):
     conn[database_name][word_stat_dict_collection_name].update_one(query, item)
     return True

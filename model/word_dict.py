@@ -34,9 +34,3 @@ class WordStatDictInDB(WordStatDictBaseModel):
     createdAt: str
     updatedAt: str
 
-
-class WordDictQueryModel(BaseModel):
-    page: int = 1
-    limit: int = 20
-    search: str = None
-    type: DictTypeEnum = None

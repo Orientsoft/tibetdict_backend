@@ -17,3 +17,4 @@ ALGORITHM = "HS256"
 API_KEY = 'welcome1'
 user_collection_name = 'user'
 word_stat_dict_collection_name = 'word_stat_dict'
+self_dict_collection_name = 'self_dict'
