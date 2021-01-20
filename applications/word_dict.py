@@ -1,35 +1,70 @@
-from flask import Blueprint, jsonify, request, session
-from model.word_dict import WordStatDictCreateModel, WordStatDictUpdateModel, WordDictQueryModel
+from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from starlette.status import HTTP_400_BAD_REQUEST
+from model.user import UserCreateModel, User, UserInDB, TokenResponse, UserListResponse
+from common.jwt import get_current_user_authorizer
+from common.mongodb import AsyncIOMotorClient, get_database
 
-word_dict = Blueprint('word_dict', __name__)
+from model.word_dict import WordStatDictCreateModel, WordStatDictUpdateModel, WordDictQueryModel, DictTypeEnum
+from crud.word_dict import create_word_stat_dict, get_word_stat_dict_list, get_word_stat_dict, update_word_stat_dict
+
+router = APIRouter()
 
 
-# 单个词典的CRUD
-@word_dict.route('/word/dict', methods=['POST', 'PATCH', 'GET', 'DELETE'])
-def post_word_dict():
-    from app import db
-    if request.method == 'POST':
-        db_word = db.word_stat_dict.find_one({'word': request.json.get('word')})
-        if db_word:
-            return '40001', 400
-        request_model = WordStatDictCreateModel(**request.json)
-        db.word_stat_dict.insert_one(request_model.dict())
-        return jsonify({'data': {'id': request_model.id}})
-    elif request.method == 'PATCH':
-        request_model = WordStatDictUpdateModel(**request.json)
-        db.word_stat_dict.update_one({'id': request_model.id}, {'$set': request_model.dict()})
-    elif request.method == 'DELETE':
-        req_id = request.args.get('id')
-        db.word_stat_dict.delete_one({'id': req_id})
-    elif request.method == 'GET':
-        req_model = WordDictQueryModel(**request.args)
-        page = req_model.page
-        limit = req_model.limit
-        query_obj = {}
-        if req_model.search:
-            query_obj['$or'] = [{'word': {'$regex': req_model.search}}, {'nature': {'$regex': req_model.search}}]
-        if req_model.type:
-            query_obj['type'] = req_model.type
-        data = db.word_stat_dict.find(query_obj, {'_id': 0}).skip((page - 1) * limit).limit(limit)
-        total = db.word_stat_dict.count(query_obj)
-        return jsonify({'data': data, 'total': total})
+@router.post('/word/stat/dict', tags=['admin'], name='管理员添加词库')
+async def add_dict(
+        word: str = Body(...), nature: str = Body(...), type: DictTypeEnum = Body(...),
+        name: str = Body(None),
+        user: User = Depends(get_current_user_authorizer(required=True)),
+        db: AsyncIOMotorClient = Depends(get_database)
+):
+    if 0 not in user.role:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    db_w = await get_word_stat_dict(db, {'word': word, 'nature': nature, 'type': type})
+    if db_w:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '内容重复')
+    await create_word_stat_dict(db, WordStatDictCreateModel(
+        word=word,
+        nature=nature,
+        type=type,
+        is_exclude=False,
+        name=name
+    ))
+    return {'msg': '2001'}
+
+
+@router.get('/word/stat/dict', tags=['admin'], name='管理员获取词库')
+async def get_dict(type: DictTypeEnum, search: str = None, page: int = 1, limit: int = 20, is_exclude: bool = None,
+                   user: User = Depends(get_current_user_authorizer(required=True)),
+                   db: AsyncIOMotorClient = Depends(get_database)
+                   ):
+    if 0 not in user.role:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    query_obj = {'type': type}
+    if search is not None:
+        query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}}]
+    if is_exclude is not None:
+        query_obj['is_exclude'] = is_exclude
+    data = await get_word_stat_dict_list(db, query_obj, page, limit)
+    return {'data': data}
+
+
+@router.patch('/word/stat/dict', tags=['admin'], name='管理员修改词库')
+async def patch_dict(data: WordStatDictUpdateModel = Body(...),
+                     user: User = Depends(get_current_user_authorizer(required=True)),
+                     db: AsyncIOMotorClient = Depends(get_database)
+                     ):
+    if 0 not in user.role:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    await update_word_stat_dict(db, {'id': data.id}, {'$set': data.dict(exclude_none=True)})
+    return {'msg': '2001'}
+
+
+@router.post('/word/stat/dict/batch', tags=['admin'], deprecated=True, name='管理员批量导入词库')
+async def batch_add(file_id: str = Body(...),
+                    user: User = Depends(get_current_user_authorizer(required=True)),
+                    db: AsyncIOMotorClient = Depends(get_database)
+                    ):
+    if 0 not in user.role:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    # TODO

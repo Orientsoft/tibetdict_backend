@@ -12,6 +12,7 @@ from respcode import data
 from loguru import logger
 from typing import Union
 from applications.user import router as user_router
+from applications.word_dict import router as word_dict_router
 import traceback
 import uvicorn
 
@@ -70,6 +71,7 @@ app.add_exception_handler(HTTPException, http_error_handler)
 app.add_exception_handler(RequestValidationError, http422_error_handler)
 
 app.include_router(user_router, prefix='/api')
+app.include_router(word_dict_router, prefix='/api')
 
 if __name__ == '__main__':
     uvicorn.run(

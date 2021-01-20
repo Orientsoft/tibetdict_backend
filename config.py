@@ -16,3 +16,4 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 ALGORITHM = "HS256"
 API_KEY = 'welcome1'
 user_collection_name = 'user'
+word_stat_dict_collection_name = 'word_stat_dict'

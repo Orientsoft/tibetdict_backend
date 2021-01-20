@@ -13,6 +13,8 @@ class WordStatDictBaseModel(BaseModel):
     word: str
     nature: str
     type: DictTypeEnum
+    is_exclude: bool = False
+    name: str = None
 
 
 class WordStatDictCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, WordStatDictBaseModel):
@@ -23,7 +25,8 @@ class WordStatDictUpdateModel(BaseModel):
     id: str
     word: str = None
     nature: str = None
-    type: DictTypeEnum = None
+    is_exclude: bool = None
+    name: str = None
 
 
 class WordStatDictInDB(WordStatDictBaseModel):
