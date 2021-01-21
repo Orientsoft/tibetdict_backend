@@ -9,6 +9,7 @@ from common.mongodb import AsyncIOMotorClient, get_database
 
 from crud.file import create_file
 from model.file import FileCreateModel
+from common.upload import MinioUploadPrivate
 
 router = APIRouter()
 
@@ -19,12 +20,14 @@ async def upload_image(file: UploadFile = File(...), user: User = Depends(get_cu
     # doc,docx,csv,
     # if 'text' not in file.content_type:
     #     raise HTTPException(status_code=400, detail='100141')
-    st = file.file.read()
     data = FileCreateModel(
         user_id=user.id,
         file_name=file.filename,
-        file_content=st
     )
+    attr = file.filename.rsplit('.')[-1]
+    data.path = f'{user.id}/{data.id}.{attr}'
+    m = MinioUploadPrivate()
+    m.commit(file, data.path)
     await create_file(db, data)
     return {'id': data.id}
 

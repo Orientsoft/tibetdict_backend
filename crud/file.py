@@ -5,11 +5,6 @@ from config import database_name, file_collection_name
 
 
 async def get_file(conn: AsyncIOMotorClient, query: Optional[dict]) -> FileInDB:
-    row = await conn[database_name][file_collection_name].find_one(query, {'file_content': 0})
-    return FileInDB(**row) if row else None
-
-
-async def get_file_content(conn: AsyncIOMotorClient, query: Optional[dict]) -> FileInDB:
     row = await conn[database_name][file_collection_name].find_one(query)
     return FileInDB(**row) if row else None
 
@@ -20,7 +15,7 @@ async def create_file(conn: AsyncIOMotorClient, data: FileCreateModel) -> str:
 
 
 async def get_file_list(conn: AsyncIOMotorClient, query: Optional[dict], page: int, limit: int):
-    result = conn[database_name][file_collection_name].find(query, {'file_content': 0}).skip((page - 1) * limit).limit(
+    result = conn[database_name][file_collection_name].find(query).skip((page - 1) * limit).limit(
         limit)
     return [FileInDB(**x) async for x in result]
 

@@ -19,3 +19,9 @@ user_collection_name = 'user'
 word_stat_dict_collection_name = 'word_stat_dict'
 self_dict_collection_name = 'self_dict'
 file_collection_name = 'file'
+
+MINIO_URL = 'storage.mooplab.com'
+MINIO_ACCESS = 'moop'
+MINIO_SECRET = 'd2VsY29tZTEK'
+MINIO_SECURE = True
+MINIO_BUCKET = 'tibetdict'
