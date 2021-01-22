@@ -4,12 +4,14 @@ from typing import List
 from loguru import logger
 from model.user import User
 from model.word_stat import WordStatCreateModel
+from model.word_dict import DictTypeEnum
 from common.jwt import get_current_user_authorizer
 from common.mongodb import AsyncIOMotorClient, get_database
 from common.upload import MinioUploadPrivate
 
 from crud.file import get_file
 from crud.word_stat import create_word_stat_his, get_word_stat_his_list, count_word_stat_his_by_query, get_word_stat_his
+from crud.word_dict import get_word_stat_dict_list, batch_update_word_stat_dict
 
 router = APIRouter()
 
@@ -54,9 +56,18 @@ async def history_stat(file_name: str = None, status: int = None, page: int = 1,
 async def start_stat(ids: List[str] = Body(..., embed=True),
                      user: User = Depends(get_current_user_authorizer(required=True)),
                      db: AsyncIOMotorClient = Depends(get_database)):
-    pass
-    # todo status = 1 统计中，调统计算法（分词后的文档内容，）
-    #
+    db_data = await get_word_stat_his_list(db, {'user_id': user.id, 'id': {'$in': ids}}, page=1, limit=len(ids))
+    m = MinioUploadPrivate()
+    db_code = await get_word_stat_dict_list(db, {'type': DictTypeEnum.stat, 'is_exclude': False}, page=1, limit=0)
+    need_code = [{'word': item.word, 'nature': item.word} for item in db_code]
+    need_update_ids = []
+    for item in db_data:
+        # TODO 异步调用统计算法 calc_result(content,need_code)
+        # content = m.get_object(item.parsed)
+        need_update_ids.append(item.id)
+    # 统计中
+    await batch_update_word_stat_dict(db, {'id': {'$in': need_update_ids}}, {'$set': {'status': 1}})
+    return {'msg': '2002'}
 
 
 @router.post('/word/stat/result', tags=['词频统计'], name='统计结果')

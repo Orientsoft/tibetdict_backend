@@ -28,3 +28,8 @@ async def count_word_stat_dict_by_query(conn: AsyncIOMotorClient, query: Optiona
 async def update_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict], item: dict):
     conn[database_name][word_stat_dict_collection_name].update_one(query, item)
     return True
+
+
+async def batch_update_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict], item: dict):
+    conn[database_name][word_stat_dict_collection_name].update_many(query, item)
+    return True

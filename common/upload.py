@@ -33,5 +33,9 @@ class MinioUploadPrivate:
     def presign(self, full_path: str, resp_header=None):
         return mc.presigned_get_object(self.bucket, full_path, timedelta(days=1), response_headers=resp_header)
 
-    def get_object(self, full_path: str):
-        return mc.get_object(self.bucket, full_path).data
+    def get_object(self, full_path: str) -> bytes:
+        try:
+            data = mc.get_object(self.bucket, full_path).data
+        except:
+            data = b''
+        return data

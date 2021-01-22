@@ -69,7 +69,6 @@ async def upload_file(file: UploadFile = File(...), user: User = Depends(get_cur
             os.remove(saveas_txt_file_name)
         # 删除临时文件
         os.remove(origin_temp_file_name)
-    logger.info(origin_content)
 
     m = MinioUploadPrivate()
 
