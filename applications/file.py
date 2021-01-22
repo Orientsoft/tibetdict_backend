@@ -13,7 +13,7 @@ from model.user import User
 from common.jwt import get_current_user_authorizer
 from common.mongodb import AsyncIOMotorClient, get_database
 
-from crud.file import create_file
+from crud.file import create_file, get_file_list, count_file_by_query, delete_file
 from model.file import FileCreateModel
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5, tokenize_words
@@ -93,10 +93,42 @@ async def upload_file(file: UploadFile = File(...), user: User = Depends(get_cur
     return {'id': data.id}
 
 
+@router.get('/my/file', tags=['user'], name='我的文件')
+async def get_file(user_id: str = None, search: str = None, page: int = 1, limit: int = 20,
+                   user: User = Depends(get_current_user_authorizer()),
+                   db: AsyncIOMotorClient = Depends(get_database)):
+    if 0 in user.role:
+        u_id = user_id
+    else:
+        u_id = user.id
+    query_obj = {'user_id': u_id}
+    if search is not None:
+        query_obj['file_name'] = {'$regex': search}
+    data = await get_file_list(db, query_obj, page=page, limit=limit)
+    count = await count_file_by_query(db, query_obj)
+    return {
+        'data': data,
+        'count': count
+    }
+
+
+@router.patch('/file', tags=['user'], name='修改文件（parsed）')
+async def patch_file(file_id: str,
+                     user: User = Depends(get_current_user_authorizer()),
+                     db: AsyncIOMotorClient = Depends(get_database)):
+    pass
+
+
+@router.delete('/file', tags=['user'], name='删除文件')
+async def del_file(file_id: str,
+                   user: User = Depends(get_current_user_authorizer()),
+                   db: AsyncIOMotorClient = Depends(get_database)):
+    # todo 文件不能在work_history中出现
+    await delete_file(db, {'id': id, 'user_id': user.id})
+
+
 # TODO
 '''
 1.词频统计词库导入（管理员）
 2.已有词典导入（管理员）
-3.词频统计上传文档
-4.新词查找上传
 '''

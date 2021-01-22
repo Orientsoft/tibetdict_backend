@@ -79,7 +79,7 @@ async def start_stat(ids: List[str] = Body(..., embed=True),
     return {'msg': '2002'}
 
 
-@router.post('/work/result', tags=['工作'], name='词频统计结果')
+@router.post('/work/result', tags=['工作'], name='统计结果')
 async def work_result(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
@@ -93,6 +93,8 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
     db_his = await get_work_history(db, {'id': id}, show_result=True)
     if db_his.status != 2 or not db_his.result:
         raise HTTPException(HTTP_400_BAD_REQUEST, '文档无法审阅')
+    if db_his.user_id != user.id or 0 not in user.role:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
     m = MinioUploadPrivate()
     content = m.get_object(db_his.parsed)
     returnObj = {
