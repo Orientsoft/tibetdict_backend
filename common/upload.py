@@ -25,11 +25,9 @@ class MinioUploadPrivate:
         except ResponseError as err:
             pass
 
-    def commit(self, file, full_path: str):
-        # fastapi
-        st = file.file.read()
-        data = BytesIO(st)
-        mc.put_object(self.bucket, full_path, data, len(st), content_type=file.content_type)
+    def commit(self, stream: bytes, full_path: str):
+        data = BytesIO(stream)
+        mc.put_object(self.bucket, full_path, data, len(stream))
         return full_path
 
     def presign(self, full_path: str, resp_header=None):
