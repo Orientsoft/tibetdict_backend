@@ -15,6 +15,7 @@ from applications.user import router as user_router
 from applications.word_dict import router as word_dict_router
 from applications.self_dict import router as self_dict_router
 from applications.upload import router as upload_router
+from applications.word_stat import router as word_stat_his_router
 import traceback
 import uvicorn
 
@@ -76,6 +77,7 @@ app.include_router(user_router, prefix='/api')
 app.include_router(word_dict_router, prefix='/api')
 app.include_router(self_dict_router, prefix='/api')
 app.include_router(upload_router, prefix='/api')
+app.include_router(word_stat_his_router, prefix='/api')
 
 if __name__ == '__main__':
     uvicorn.run(

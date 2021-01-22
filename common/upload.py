@@ -34,4 +34,4 @@ class MinioUploadPrivate:
         return mc.presigned_get_object(self.bucket, full_path, timedelta(days=1), response_headers=resp_header)
 
     def get_object(self, full_path: str):
-        return mc.get_object(self.bucket, full_path)
+        return mc.get_object(self.bucket, full_path).data

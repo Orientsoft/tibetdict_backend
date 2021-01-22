@@ -19,6 +19,7 @@ user_collection_name = 'user'
 word_stat_dict_collection_name = 'word_stat_dict'
 self_dict_collection_name = 'self_dict'
 file_collection_name = 'file'
+word_stat_his_collection_name = 'word_stat_his'
 
 MINIO_URL = 'storage.mooplab.com'
 MINIO_ACCESS = 'moop'
