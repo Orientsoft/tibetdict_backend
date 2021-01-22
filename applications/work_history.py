@@ -42,14 +42,15 @@ async def add_work_history(file_id: str = Body(...), type: WorkTypeEnum = Body(.
 
 
 @router.get('/work', tags=['工作'], name='历史记录')
-async def history_stat(user_id: str = None, file_name: str = None, status: int = None, page: int = 1, limit: int = 20,
+async def history_stat(type: WorkTypeEnum, user_id: str = None, file_name: str = None, status: int = None,
+                       page: int = 1, limit: int = 20,
                        user: User = Depends(get_current_user_authorizer(required=True)),
                        db: AsyncIOMotorClient = Depends(get_database)):
     if 0 in user.role:
         u_id = user_id
     else:
         u_id = user.id
-    query_obj = {'user_id': u_id}
+    query_obj = {'user_id': u_id, 'type': type}
     if file_name is not None:
         query_obj['file_name'] = {'$regex': file_name}
     if status is not None:
@@ -78,17 +79,16 @@ async def start_stat(ids: List[str] = Body(..., embed=True),
     return {'msg': '2002'}
 
 
-@router.post('/word/result', tags=['工作'], name='词频统计结果')
-async def add_work_history(ids: List[str] = Body(..., embed=True),
-                           user: User = Depends(get_current_user_authorizer(required=True)),
-                           db: AsyncIOMotorClient = Depends(get_database)):
+@router.post('/work/result', tags=['工作'], name='词频统计结果')
+async def work_result(ids: List[str] = Body(..., embed=True),
+                      user: User = Depends(get_current_user_authorizer(required=True)),
+                      db: AsyncIOMotorClient = Depends(get_database)):
     pass
 
 
 @router.get('/work/review', tags=['工作'], name='文档审阅')
-async def add_work_history(id: str,
-                           user: User = Depends(get_current_user_authorizer(required=True)),
-                           db: AsyncIOMotorClient = Depends(get_database)):
+async def work_review(id: str, user: User = Depends(get_current_user_authorizer(required=True)),
+                      db: AsyncIOMotorClient = Depends(get_database)):
     # 不过滤result
     db_his = await get_work_history(db, {'id': id}, show_result=True)
     if db_his.status != 2 or not db_his.result:
