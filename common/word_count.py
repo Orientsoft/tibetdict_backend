@@ -5,6 +5,8 @@ from collections import Counter
 from common.upload import MinioUploadPrivate
 from loguru import logger
 import traceback
+
+
 # import time
 
 
@@ -15,7 +17,6 @@ class WordCount:
         self.word_type = word_type
         self.word_stat_in_content = None
         self.color_total = color_total
-        self.colouration_result = {}
         # self.time = time.time()
 
     async def get_content(self, _id):
@@ -42,13 +43,14 @@ class WordCount:
     def colouration(self, word_stat_in_content):
         '''
         动态染色，无具体色号，共6种，以int类型标注
-        :return: 字符为key，颜色编号为value的字典
+        :return: 频率为key，颜色编号为value的字典
         '''
-        if not self.word_stat_in_content:
+        if not word_stat_in_content:
             logger.info(
                 'function "colouration" in class "WordCount" do not find self.word_stat_\
                 in_content and run function "split_and_count_file_content"')
             self.split_and_count_file_content()
+        colouration_result = {}
         # start_time = time.time()
         # 得到每种频率
         frequency = list(set(word_stat_in_content.values()))
@@ -57,18 +59,19 @@ class WordCount:
         for x in range(len(frequency)):
             # 是否整除不影响结果
             if x < step:
-                self.colouration_result[frequency[x]] = 0
+                colouration_result[frequency[x]] = 0
             elif x < 2 * step:
-                self.colouration_result[frequency[x]] = 1
+                colouration_result[frequency[x]] = 1
             elif x < 3 * step:
-                self.colouration_result[frequency[x]] = 2
+                colouration_result[frequency[x]] = 2
             elif x < 4 * step:
-                self.colouration_result[frequency[x]] = 3
+                colouration_result[frequency[x]] = 3
             elif x < 5 * step:
-                self.colouration_result[frequency[x]] = 4
+                colouration_result[frequency[x]] = 4
             else:
-                self.colouration_result[frequency[x]] = 5
+                colouration_result[frequency[x]] = 5
         # logger.info('colouration used: %s' % str(start_time - self.time))
+        return colouration_result
 
     async def word_count(self, _id):
         '''
@@ -84,11 +87,7 @@ class WordCount:
                     'function "word_count" in class "WordCount" do not find self.word_stat_in_content \
                     and run function "split_and_count_file_content"')
                 self.split_and_count_file_content()
-            if not self.colouration_result:
-                logger.info(
-                    'function "word_count" in class "WordCount" do not \
-                    find self.coluration_result and run function "colouration"')
-                self.colouration(word_stat_in_content=self.word_stat_in_content)
+            colouration_result = self.colouration(word_stat_in_content=self.word_stat_in_content)
             # start_time = time.time()
             query = {
                 'word': {'$in': list(self.word_stat_in_content.keys())},
@@ -103,7 +102,7 @@ class WordCount:
                     'word': x['word'],
                     'nature': x['nature'],
                     'count': self.word_stat_in_content[x['word']],
-                    'color': self.colouration_result[self.word_stat_in_content[x['word']]],
+                    'color': colouration_result[self.word_stat_in_content[x['word']]],
                 })
             # logger.info('word_count used: %s' % str(start_time - self.time))
             result.sort(key=lambda x: x['count'], reverse=True)
