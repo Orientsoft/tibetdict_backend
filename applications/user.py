@@ -89,7 +89,7 @@ async def get_init_admin(
 
 @router.get('/reset_password', tags=['admin'], name='管理员重置密码')
 async def get_reset_password(
-        user_id: str,
+        user_id: str, new_pass: str,
         user: User = Depends(get_current_user_authorizer(required=True)),
         db: AsyncIOMotorClient = Depends(get_database)
 ):
@@ -98,5 +98,5 @@ async def get_reset_password(
     data_user = await get_user(conn=db, query={'id': user_id})
     if not data_user:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40002')
-    await update_password(conn=db, query={'id': user_id}, password=data_user.username)
+    await update_password(conn=db, query={'id': user_id}, password=new_pass)
     return {'msg': '2001'}
