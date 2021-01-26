@@ -17,7 +17,7 @@ from crud.word_dict import get_word_stat_dict_list
 router = APIRouter()
 
 
-@router.post('/work', tags=['工作'], name='用户添加统计任务')
+@router.post('/work', tags=['work'], name='用户添加统计任务')
 async def add_work_history(file_id: str = Body(...), type: WorkTypeEnum = Body(...),
                            user: User = Depends(get_current_user_authorizer(required=True)),
                            db: AsyncIOMotorClient = Depends(get_database)):
@@ -41,7 +41,7 @@ async def add_work_history(file_id: str = Body(...), type: WorkTypeEnum = Body(.
     return {'msg': '2002'}
 
 
-@router.get('/work', tags=['工作'], name='历史记录')
+@router.get('/work', tags=['work'], name='历史记录')
 async def history_stat(type: WorkTypeEnum, user_id: str = None, file_name: str = None, status: int = None,
                        page: int = 1, limit: int = 20,
                        user: User = Depends(get_current_user_authorizer(required=True)),
@@ -60,7 +60,7 @@ async def history_stat(type: WorkTypeEnum, user_id: str = None, file_name: str =
     return {'data': data, 'total': total}
 
 
-@router.post('/work/start', tags=['工作'], deprecated=True, name='开始任务')
+@router.post('/work/start', tags=['work'], deprecated=True, name='开始任务')
 async def start_stat(ids: List[str] = Body(..., embed=True),
                      user: User = Depends(get_current_user_authorizer(required=True)),
                      db: AsyncIOMotorClient = Depends(get_database)):
@@ -79,14 +79,14 @@ async def start_stat(ids: List[str] = Body(..., embed=True),
     return {'msg': '2002'}
 
 
-@router.post('/work/result', tags=['工作'], name='统计结果')
+@router.post('/work/result', tags=['work'], name='统计结果')
 async def work_result(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
     pass
 
 
-@router.get('/work/review', tags=['工作'], name='文档审阅')
+@router.get('/work/review', tags=['work'], name='文档审阅')
 async def work_review(id: str, user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
     # 不过滤result

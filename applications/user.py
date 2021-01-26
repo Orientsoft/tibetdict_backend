@@ -11,7 +11,7 @@ from config import API_KEY
 router = APIRouter()
 
 
-@router.post('/user', tags=['用户模块'], name='单个用户添加')
+@router.post('/user', tags=['admin'], name='单个用户添加')
 async def post_users(
         username: str = Body(..., embed=True),
         user: User = Depends(get_current_user_authorizer(required=True)),
@@ -32,7 +32,7 @@ async def post_users(
     return {'data': {'id': user_model.id}}
 
 
-@router.patch('/user', tags=['用户模块'], name='用户修改自己密码')
+@router.patch('/user', tags=['user'], name='用户修改自己密码')
 async def patch_user(
         old_password: str = Body(...), new_password: str = Body(...),
         user: User = Depends(get_current_user_authorizer(required=True)),
@@ -57,7 +57,7 @@ async def login(user: OAuth2PasswordRequestForm = Depends(), db: AsyncIOMotorCli
     return TokenResponse(access_token=token)
 
 
-@router.get('/user_list', tags=['user', 'admin'], response_model=UserListResponse, name='用户列表获取')
+@router.get('/user_list', tags=['admin'], response_model=UserListResponse, name='用户列表获取')
 async def get_user_list(
         search: str = None, page: int = 1, limit: int = 20,
         user: User = Depends(get_current_user_authorizer(required=True)),
@@ -87,7 +87,7 @@ async def get_init_admin(
     return {'msg': '2001'}
 
 
-@router.get('/reset_password', tags=['user', 'admin'], name='管理员重置密码')
+@router.get('/reset_password', tags=['admin'], name='管理员重置密码')
 async def get_reset_password(
         user_id: str,
         user: User = Depends(get_current_user_authorizer(required=True)),

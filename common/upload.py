@@ -39,3 +39,6 @@ class MinioUploadPrivate:
         except:
             data = b''
         return data
+
+    def remove(self, full_path: str):
+        mc.remove_object(self.bucket, full_path)
