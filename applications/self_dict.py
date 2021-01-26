@@ -33,13 +33,13 @@ async def add_dict(
 
 
 @router.get('/self/dict', tags=['自有词库', 'admin'], name='用户获取自有词库')
-async def get_dict(user_id: str, search: str = None, page: int = 1, limit: int = 20, is_check: bool = None,
+async def get_dict(user_id: str = None, search: str = None, page: int = 1, limit: int = 20, is_check: bool = None,
                    user: User = Depends(get_current_user_authorizer(required=True)),
                    db: AsyncIOMotorClient = Depends(get_database)
                    ):
     # 管理员可查看其他人
     if 0 in user.role:
-        u_id = user_id
+        u_id = user_id or user.id
     else:
         u_id = user.id
     query_obj = {'user_id': u_id}

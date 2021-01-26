@@ -6,8 +6,8 @@ from model.file import FileInDB
 
 
 class WorkTypeEnum(str, Enum):
-    count = 'count'  # 词频统计
-    find = 'find'  # 新词发现
+    stat = 'stat'  # 词频统计
+    new = 'new'  # 新词发现
 
 
 class WorkHistoryBaseModel(BaseModel):
@@ -18,7 +18,7 @@ class WorkHistoryBaseModel(BaseModel):
     parsed: str
     o_hash: str
     p_hash: str
-    type: WorkTypeEnum
+    work_type: WorkTypeEnum
     status: int = Field(..., ge=0, le=2)
     result: List[dict] = None
 

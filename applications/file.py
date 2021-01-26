@@ -100,7 +100,7 @@ async def get_my_file(user_id: str = None, search: str = None, is_check: bool = 
                       user: User = Depends(get_current_user_authorizer()),
                       db: AsyncIOMotorClient = Depends(get_database)):
     if 0 in user.role:
-        u_id = user_id
+        u_id = user_id or user.id
     else:
         u_id = user.id
     query_obj = {'user_id': u_id}

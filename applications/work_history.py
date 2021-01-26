@@ -20,20 +20,21 @@ router = APIRouter()
 
 
 @router.post('/work', tags=['work'], name='用户根据文件id开始任务')
-async def add_work_history(file_ids: List[str] = Body(...), type: WorkTypeEnum = Body(...),
+async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeEnum = Body(...),
                            user: User = Depends(get_current_user_authorizer(required=True)),
                            db: AsyncIOMotorClient = Depends(get_database)):
     if len(file_ids) > max_limit:
         raise HTTPException(HTTP_400_BAD_REQUEST, '超过限制')
+    data_id = []
     for file_id in file_ids:
         db_file = await get_file(db, {'id': file_id})
         if not db_file:
             continue
-        db_his = await get_work_history(db, {'user_id': user.id, 'file_id': file_id, 'type': type})
+        db_his = await get_work_history(db, {'user_id': user.id, 'file_id': file_id, 'work_type': work_type})
         if db_his:
             continue
         # 新增work_history
-        await create_work_history(db, WorkHistoryCreateModel(
+        data = WorkHistoryCreateModel(
             user_id=user.id,
             file_id=file_id,
             file_name=db_file.file_name,
@@ -41,21 +42,24 @@ async def add_work_history(file_ids: List[str] = Body(...), type: WorkTypeEnum =
             parsed=db_file.parsed,
             o_hash=db_file.o_hash,
             p_hash=db_file.p_hash,
-            type=type,
+            work_type=work_type,
             status=0  # 0：统计中，1：统计成功，2：统计失败
-        ))
+        )
+        await create_work_history(db, data)
         # 修改file.last_stat, file.last_new
         now = datetime.now(tz=timezone).isoformat()
-        if type == WorkTypeEnum.count:
+
+        if work_type == WorkTypeEnum.stat:
             await update_file(db, {'id': file_id}, {'$set': {'last_stat': now}})
-        elif type == WorkTypeEnum.find:
+        elif work_type == WorkTypeEnum.new:
             await update_file(db, {'id': file_id}, {'$set': {'last_new': now}})
+        data_id.append(data.id)
         # todo 异步调算法（minio的文件路径）
-    return {'msg': '2002'}
+    return {'data': data_id}
 
 
 @router.get('/work', tags=['work'], name='历史记录')
-async def history_stat(type: WorkTypeEnum, user_id: str = None, file_name: str = None, status: int = None,
+async def history_stat(work_type: WorkTypeEnum, user_id: str = None, file_name: str = None, status: int = None,
                        page: int = 1, limit: int = 20,
                        user: User = Depends(get_current_user_authorizer(required=True)),
                        db: AsyncIOMotorClient = Depends(get_database)):
@@ -63,7 +67,7 @@ async def history_stat(type: WorkTypeEnum, user_id: str = None, file_name: str =
         u_id = user_id
     else:
         u_id = user.id
-    query_obj = {'user_id': u_id, 'type': type}
+    query_obj = {'user_id': u_id, 'work_type': work_type}
     if file_name is not None:
         query_obj['file_name'] = {'$regex': file_name}
     if status is not None:
@@ -71,25 +75,6 @@ async def history_stat(type: WorkTypeEnum, user_id: str = None, file_name: str =
     data = await get_work_history_list(db, query_obj, page, limit)
     total = await count_work_history_by_query(db, query_obj)
     return {'data': data, 'total': total}
-
-
-# @router.post('/worksssssss', tags=['work'], deprecated=True, name='开始任务')
-# async def start_stat(ids: List[str] = Body(..., embed=True),
-#                      user: User = Depends(get_current_user_authorizer(required=True)),
-#                      db: AsyncIOMotorClient = Depends(get_database)):
-#     db_data = await get_work_history_list(db, {'user_id': user.id, 'id': {'$in': ids}}, page=1, limit=len(ids))
-#     m = MinioUploadPrivate()
-#     db_code = await get_word_stat_dict_list(db, {'type': DictTypeEnum.stat, 'is_exclude': False}, page=1, limit=0)
-#     need_code = [{'word': item.word, 'nature': item.word} for item in db_code]
-#     need_update_ids = []
-#     for item in db_data:
-#         # todo 任务类型可能不同
-#         # TODO 异步调用统计算法 calc_result(content,need_code)
-#         # content = m.get_object(item.parsed)
-#         need_update_ids.append(item.id)
-#     # 统计中
-#     await batch_update_work_history(db, {'id': {'$in': need_update_ids}}, {'$set': {'status': 1}})
-#     return {'msg': '2002'}
 
 
 @router.post('/work/result', tags=['work'], name='统计结果')
@@ -117,3 +102,21 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
         'result': db_his.result
     }
     return returnObj
+
+# @router.post('/worksssssss', tags=['work'], deprecated=True, name='开始任务')
+# async def start_stat(ids: List[str] = Body(..., embed=True),
+#                      user: User = Depends(get_current_user_authorizer(required=True)),
+#                      db: AsyncIOMotorClient = Depends(get_database)):
+#     db_data = await get_work_history_list(db, {'user_id': user.id, 'id': {'$in': ids}}, page=1, limit=len(ids))
+#     m = MinioUploadPrivate()
+#     db_code = await get_word_stat_dict_list(db, {'type': DictTypeEnum.stat, 'is_exclude': False}, page=1, limit=0)
+#     need_code = [{'word': item.word, 'nature': item.word} for item in db_code]
+#     need_update_ids = []
+#     for item in db_data:
+#         # todo 任务类型可能不同
+#         # TODO 异步调用统计算法 calc_result(content,need_code)
+#         # content = m.get_object(item.parsed)
+#         need_update_ids.append(item.id)
+#     # 统计中
+#     await batch_update_work_history(db, {'id': {'$in': need_update_ids}}, {'$set': {'status': 1}})
+#     return {'msg': '2002'}
