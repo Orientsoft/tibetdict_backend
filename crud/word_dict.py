@@ -1,5 +1,5 @@
 from common.mongodb import AsyncIOMotorClient
-from typing import Optional
+from typing import Optional, List
 from model.word_dict import WordStatDictCreateModel, WordStatDictInDB
 from config import database_name, word_stat_dict_collection_name
 
@@ -12,6 +12,11 @@ async def get_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict]) ->
 async def create_word_stat_dict(conn: AsyncIOMotorClient, data: WordStatDictCreateModel) -> WordStatDictInDB:
     conn[database_name][word_stat_dict_collection_name].insert_one(data.dict())
     return WordStatDictInDB(**data.dict())
+
+
+async def batch_create_word_stat_dict(conn: AsyncIOMotorClient, data: List):
+    conn[database_name][word_stat_dict_collection_name].insert_many(data)
+    return True
 
 
 async def get_word_stat_dict_list(conn: AsyncIOMotorClient, query: Optional[dict], page: int,

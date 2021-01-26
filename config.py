@@ -20,7 +20,7 @@ word_stat_dict_collection_name = 'word_stat_dict'
 self_dict_collection_name = 'self_dict'
 file_collection_name = 'file'
 work_history_collection_name = 'work_history'
-
+max_limit = 5
 MINIO_URL = 'storage.mooplab.com'
 MINIO_ACCESS = 'moop'
 MINIO_SECRET = 'd2VsY29tZTEK'

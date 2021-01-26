@@ -19,7 +19,7 @@ class WorkHistoryBaseModel(BaseModel):
     o_hash: str
     p_hash: str
     type: WorkTypeEnum
-    status: int = Field(..., ge=0, le=3)
+    status: int = Field(..., ge=0, le=2)
     result: List[dict] = None
 
 
