@@ -6,15 +6,15 @@ from datetime import datetime
 from config import timezone, max_limit
 from model.user import User
 from model.work_history import WorkHistoryCreateModel, WorkTypeEnum
-from model.word_dict import DictTypeEnum
 from common.jwt import get_current_user_authorizer
 from common.mongodb import AsyncIOMotorClient, get_database
 from common.upload import MinioUploadPrivate
 
 from crud.file import get_file, update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
-    get_work_history, batch_update_work_history
-from crud.word_dict import get_word_stat_dict_list
+    get_work_history, get_work_history_result_sum, update_work_history
+
+from common.word_count import WordCount
 
 router = APIRouter()
 
@@ -26,8 +26,9 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
     if len(file_ids) > max_limit:
         raise HTTPException(HTTP_400_BAD_REQUEST, '超过限制')
     data_id = []
+    w = WordCount(conn=db)
     for file_id in file_ids:
-        db_file = await get_file(db, {'id': file_id})
+        db_file = await get_file(db, {'id': file_id, 'user_id': user.id})
         if not db_file:
             continue
         db_his = await get_work_history(db, {'user_id': user.id, 'file_id': file_id, 'work_type': work_type})
@@ -48,13 +49,19 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
         await create_work_history(db, data)
         # 修改file.last_stat, file.last_new
         now = datetime.now(tz=timezone).isoformat()
-
         if work_type == WorkTypeEnum.stat:
             await update_file(db, {'id': file_id}, {'$set': {'last_stat': now}})
         elif work_type == WorkTypeEnum.new:
             await update_file(db, {'id': file_id}, {'$set': {'last_new': now}})
         data_id.append(data.id)
-        # todo 异步调算法（minio的文件路径）
+        result = await w.word_count(_id=data.id)
+        update_obj = {}
+        if result:
+            update_obj['status'] = 1
+            update_obj['result'] = result
+        else:
+            update_obj['status'] = 2
+        await update_work_history(db, {'id': data.id}, {'$set': update_obj})
     return {'data': data_id}
 
 
@@ -81,7 +88,18 @@ async def history_stat(work_type: WorkTypeEnum, user_id: str = None, file_name: 
 async def work_result(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
-    pass
+    db_his = await get_work_history_result_sum(db, {'id': {'$in': ids}, 'user_id': user.id})
+    temp_obj = {}
+    for r in db_his:
+        temp_obj[r['word']] = r['total']
+    returnArr = []
+    # 计算颜色
+    w = WordCount(conn=db)
+    color_result = w.colouration(temp_obj)
+    for item in db_his:
+        item['color'] = color_result.get(item['total'])
+        returnArr.append(item)
+    return {'data': returnArr}
 
 
 @router.get('/work/review', tags=['work'], name='文档审阅')

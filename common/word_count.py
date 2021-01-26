@@ -54,6 +54,7 @@ class WordCount:
         # start_time = time.time()
         # 得到每种频率
         frequency = list(set(word_stat_in_content.values()))
+        logger.info(len(frequency))
         frequency.sort(reverse=True)
         step = len(frequency) / self.color_total
         for x in range(len(frequency)):

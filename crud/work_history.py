@@ -4,7 +4,8 @@ from model.work_history import WorkHistoryCreateModel, WorkHistoryInDB, WorkHist
 from config import database_name, work_history_collection_name, file_collection_name
 
 
-async def get_work_history(conn: AsyncIOMotorClient, query: Optional[dict], show_result: bool = False) -> WorkHistoryInDB:
+async def get_work_history(conn: AsyncIOMotorClient, query: Optional[dict],
+                           show_result: bool = False) -> WorkHistoryInDB:
     if show_result:
         row = await conn[database_name][work_history_collection_name].find_one(query)
     else:
@@ -45,8 +46,21 @@ async def delete_work_history(conn: AsyncIOMotorClient, query: Optional[dict]):
     return True
 
 
-
-
 async def batch_update_work_history(conn: AsyncIOMotorClient, query: Optional[dict], item: dict):
     conn[database_name][work_history_collection_name].update_many(query, item)
     return True
+
+
+async def get_work_history_result_sum(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = conn[database_name][work_history_collection_name].aggregate([
+        {'$match': query},
+        {'$unwind': '$result'},
+        {'$group': {'_id': {'word': '$result.word', 'nature': '$result.nature'}, 'total': {'$sum': '$result.count'}}},
+        {'$sort': {'total': -1}}
+    ])
+    return [{
+        'word': x['_id']['word'],
+        'nature': x['_id']['nature'],
+        'total': x['total']
+    } async for x in result]
+
