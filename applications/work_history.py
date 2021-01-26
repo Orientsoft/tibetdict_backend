@@ -56,7 +56,7 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
         data_id.append(data.id)
         result = await w.word_count(_id=data.id)
         update_obj = {}
-        if result:
+        if result is not None:
             update_obj['status'] = 1
             update_obj['result'] = result
         else:
