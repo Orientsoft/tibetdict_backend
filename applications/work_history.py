@@ -120,21 +120,3 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
         'result': db_his.result
     }
     return returnObj
-
-# @router.post('/worksssssss', tags=['work'], deprecated=True, name='开始任务')
-# async def start_stat(ids: List[str] = Body(..., embed=True),
-#                      user: User = Depends(get_current_user_authorizer(required=True)),
-#                      db: AsyncIOMotorClient = Depends(get_database)):
-#     db_data = await get_work_history_list(db, {'user_id': user.id, 'id': {'$in': ids}}, page=1, limit=len(ids))
-#     m = MinioUploadPrivate()
-#     db_code = await get_word_stat_dict_list(db, {'type': DictTypeEnum.stat, 'is_exclude': False}, page=1, limit=0)
-#     need_code = [{'word': item.word, 'nature': item.word} for item in db_code]
-#     need_update_ids = []
-#     for item in db_data:
-#         # todo 任务类型可能不同
-#         # TODO 异步调用统计算法 calc_result(content,need_code)
-#         # content = m.get_object(item.parsed)
-#         need_update_ids.append(item.id)
-#     # 统计中
-#     await batch_update_work_history(db, {'id': {'$in': need_update_ids}}, {'$set': {'status': 1}})
-#     return {'msg': '2002'}

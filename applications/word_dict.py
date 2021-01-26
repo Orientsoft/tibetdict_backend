@@ -75,9 +75,11 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
     need_insert = []
     for line in content.splitlines():
         temp = line.split('\t')
+        if len(temp) not in [2, 3]:
+            continue
         word = temp[0]
         nature = temp[1]
-        name = temp[2] or None
+        name = temp[2:][0] if temp[2:] else None
         data = WordStatDictCreateModel(
             word=word,
             nature=nature,
