@@ -44,6 +44,8 @@ class TokenResponse(BaseModel):
 class UserListModel(BaseModel):
     id: str
     username: str
+    role: List
+    createdAt: str
 
 
 class UserListResponse(BaseModel):

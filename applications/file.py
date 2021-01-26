@@ -82,7 +82,7 @@ async def upload_file(file: UploadFile = File(...), user: User = Depends(get_cur
     if len(origin_content[:500].split(' ')) <= 5:
         logger.info('未分词文档，自动分词中')
         parsed_content = tokenize_words(origin_content)
-        logger.info(parsed_content)
+        # logger.info(parsed_content)
         data.is_check = True
     else:
         parsed_content = origin_content
