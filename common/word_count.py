@@ -8,19 +8,18 @@ import time
 
 
 class WordCount:
-    def __init__(self, _id: str, conn, word_type: str = 'stat', color_total: int = 6):
+    def __init__(self, conn, word_type: str = 'stat', color_total: int = 6):
         self.content = None
         self.conn = conn
         self.word_type = word_type
         self.word_stat_in_content = None
         self.color_total = color_total
         self.colouration_result = {}
-        self._id = _id
         self.time = time.time()
 
-    async def get_content(self):
+    async def get_content(self, _id):
         start_time = time.time()
-        result = await self.conn[database_name][work_history_collection_name].find_one({'id': self._id})
+        result = await self.conn[database_name][work_history_collection_name].find_one({'id': _id})
         self.content = MinioUploadPrivate().get_object(full_path=result['parsed']).decode(encoding='utf-8')
         logger.info('get_content used: %s' % str(start_time - self.time))
 
@@ -70,14 +69,14 @@ class WordCount:
                 self.colouration_result[frequency[x]] = 5
         logger.info('colouration used: %s' % str(start_time - self.time))
 
-    async def word_count(self):
+    async def word_count(self, _id):
         '''
         根据文档已经统计出的词进行查询，得到List[BaseModel]，遍历该列表
         :return: [{'word': str, 'nature': str, 'count': int, 'color': str, 'word_index': str}]
         '''
         if not self.content:
             logger.info('run "get_content"')
-            await self.get_content()
+            await self.get_content(_id=_id)
         if not self.word_stat_in_content:
             logger.info(
                 'function "word_count" in class "WordCount" do not find self.word_stat_in_content \
