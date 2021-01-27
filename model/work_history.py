@@ -20,7 +20,8 @@ class WorkHistoryBaseModel(BaseModel):
     p_hash: str
     work_type: WorkTypeEnum
     status: int = Field(..., ge=0, le=2)
-    result: List[dict] = None
+    p_result: List[dict] = None
+    o_result: List[dict] = None
 
 
 class WorkHistoryCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, WorkHistoryBaseModel):

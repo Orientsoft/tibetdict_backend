@@ -61,7 +61,7 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
             update_obj = {}
             if result is not None:
                 update_obj['status'] = 1
-                update_obj['result'] = result
+                update_obj['p_result'] = result
             else:
                 update_obj['status'] = 2
             await update_work_history(db, {'id': data.id}, {'$set': update_obj})
@@ -72,7 +72,7 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
             update_obj = {}
             if result is not None:
                 update_obj['status'] = 1
-                update_obj['result'] = result
+                update_obj['p_result'] = result
                 add_self_dict_data = []
                 for r in result:
                     word = r.get('word')
@@ -150,7 +150,7 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
                       db: AsyncIOMotorClient = Depends(get_database)):
     # 不过滤result
     db_his = await get_work_history(db, {'id': id}, show_result=True)
-    if db_his.status != 1 or not db_his.result:
+    if db_his.status != 1 or not db_his.p_result:
         raise HTTPException(HTTP_400_BAD_REQUEST, '文档无法审阅')
     if db_his.user_id != user.id or 0 not in user.role:
         raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
@@ -160,7 +160,7 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
         'id': db_his.id,
         'file_name': db_his.file_name,
         'content': content.decode('utf-8'),
-        'result': db_his.result
+        'result': db_his.p_result
     }
     return returnObj
 
