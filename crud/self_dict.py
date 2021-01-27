@@ -1,7 +1,7 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional, List
 from model.self_dict import SelfDictInDB, SelfDictCreateModel
-from config import database_name, self_dict_collection_name
+from config import database_name, self_dict_collection_name, work_history_collection_name
 
 
 async def get_self_dict(conn: AsyncIOMotorClient, query: Optional[dict]) -> SelfDictInDB:
@@ -38,3 +38,16 @@ async def update_self_dict(conn: AsyncIOMotorClient, query: Optional[dict], item
 async def delete_self_dict(conn: AsyncIOMotorClient, query: Optional[dict]):
     conn[database_name][self_dict_collection_name].delete_many(query)
     return True
+
+
+async def get_work_new_word_result(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = conn[database_name][self_dict_collection_name].aggregate([
+        {'$match': query},
+        {'$lookup': {'from': work_history_collection_name, 'localField': 'word_history_id', 'foreignField': 'id',
+                     'as': 'work'}},
+        {'$unwind': '$work'},
+        {'$sort': {'createdAt': -1}},
+        {'$project': {'file_name': '$work.file_name', 'file_id': '$work.file_id', 'word': 1, 'nature': 1, 'context': 1,
+                      'user_id': 1, 'createdAt': 1, 'is_check': 1, 'work_id': '$work.id', 'id': 1, '_id': 0}}
+    ])
+    return [x async for x in result]

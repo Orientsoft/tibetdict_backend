@@ -15,7 +15,7 @@ from common.upload import MinioUploadPrivate
 from crud.file import get_file, update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
     get_work_history, get_work_history_result_sum, update_work_history
-from crud.self_dict import batch_create_self_dict, count_self_dict_by_query
+from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result
 
 from common.word_count import WordCount
 
@@ -169,4 +169,5 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
 async def work_new_result(ids: List[str] = Body(..., embed=True),
                           user: User = Depends(get_current_user_authorizer(required=True)),
                           db: AsyncIOMotorClient = Depends(get_database)):
-    pass
+    db_self_dict = await get_work_new_word_result(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
+    return db_self_dict
