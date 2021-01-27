@@ -31,9 +31,10 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
         db_file = await get_file(db, {'id': file_id, 'user_id': user.id})
         if not db_file:
             continue
-        db_his = await get_work_history(db, {'user_id': user.id, 'file_id': file_id, 'work_type': work_type})
-        if db_his:
-            continue
+        # 是否去重
+        # db_his = await get_work_history(db, {'user_id': user.id, 'file_id': file_id, 'work_type': work_type})
+        # if db_his:
+        #     continue
         # 新增work_history
         data = WorkHistoryCreateModel(
             user_id=user.id,
