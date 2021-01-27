@@ -87,7 +87,7 @@ async def upload_file(file: UploadFile = File(...), user: User = Depends(get_cur
         data.is_check = True
     else:
         parsed_content = origin_content
-    re.sub(r"།(\s*)།", r"།།\r\n", parsed_content)
+    parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", parsed_content)
     # 提交分词结果
     m.commit(parsed_content.encode('utf-8'), data.parsed)
     # 文件指纹
