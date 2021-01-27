@@ -4,9 +4,9 @@ from model.common import IDModel, UpdatedAtModel, CreatedAtModel
 
 class SelfDictBaseModel(BaseModel):
     word: str
-    nature: str = None
-    context: str
     user_id: str
+    nature: str = None
+    context: str = None
     is_check: bool = False
     word_history_id: str = None
 
