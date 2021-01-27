@@ -20,7 +20,7 @@ async def create_work_history(conn: AsyncIOMotorClient, data: WorkHistoryCreateM
 
 async def get_work_history_list(conn: AsyncIOMotorClient, query: Optional[dict], page: int, limit: int):
     result = conn[database_name][work_history_collection_name].aggregate([
-        {'$project': {'result': 0}},  # result 内容较大
+        {'$project': {'p_result': 0,'o_result':0}},  # result 内容较大
         {'$match': query},
         {'$lookup': {'from': file_collection_name, 'localField': 'file_id', 'foreignField': 'id', 'as': 'file'}},
         {'$unwind': '$file'},
@@ -54,8 +54,8 @@ async def batch_update_work_history(conn: AsyncIOMotorClient, query: Optional[di
 async def get_work_history_result_sum(conn: AsyncIOMotorClient, query: Optional[dict]):
     result = conn[database_name][work_history_collection_name].aggregate([
         {'$match': query},
-        {'$unwind': '$result'},
-        {'$group': {'_id': {'word': '$result.word', 'nature': '$result.nature'}, 'total': {'$sum': '$result.count'}}},
+        {'$unwind': '$p_result'},
+        {'$group': {'_id': {'word': '$p_result.word', 'nature': '$p_result.nature'}, 'total': {'$sum': '$p_result.count'}}},
         {'$sort': {'total': -1}}
     ])
     return [{
