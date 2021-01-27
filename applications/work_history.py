@@ -50,18 +50,20 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
         # 修改file.last_stat, file.last_new
         now = datetime.now(tz=timezone).isoformat()
         if work_type == WorkTypeEnum.stat:
+            result = await w.word_count(_id=data.id)
+            update_obj = {}
+            if result is not None:
+                update_obj['status'] = 1
+                update_obj['result'] = result
+            else:
+                update_obj['status'] = 2
+            await update_work_history(db, {'id': data.id}, {'$set': update_obj})
             await update_file(db, {'id': file_id}, {'$set': {'last_stat': now}})
         elif work_type == WorkTypeEnum.new:
+            # todo 新词发现结果，存储到self_dict（需去重）
             await update_file(db, {'id': file_id}, {'$set': {'last_new': now}})
         data_id.append(data.id)
-        result = await w.word_count(_id=data.id)
-        update_obj = {}
-        if result is not None:
-            update_obj['status'] = 1
-            update_obj['result'] = result
-        else:
-            update_obj['status'] = 2
-        await update_work_history(db, {'id': data.id}, {'$set': update_obj})
+
     return {'data': data_id}
 
 

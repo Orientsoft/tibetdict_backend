@@ -31,6 +31,7 @@ class WordCount:
         :return: 组装成一个字符为key，该字符计数为value的字典
         '''
         # start_time = time.time()
+        logger.info(self.content)
         content_list = self.content.split(split)
         # Counter的结果类型继承dict的属性
         self.word_stat_in_content = Counter(content_list)

@@ -8,6 +8,7 @@ class SelfDictBaseModel(BaseModel):
     context: str
     user_id: str
     is_check: bool = False
+    word_history_id: str = None
 
 
 class SelfDictCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, SelfDictBaseModel):
