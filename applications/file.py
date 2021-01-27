@@ -129,7 +129,7 @@ async def get_file_content(file_id: str,
         raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
     m = MinioUploadPrivate()
     content = m.get_object(db_file.parsed)
-    return {'data': content}
+    return {'data': content.decode('utf-8')}
 
 
 @router.patch('/file', tags=['file'], name='修改文件（parsed,is_check）')
