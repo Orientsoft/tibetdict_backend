@@ -150,7 +150,7 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
                       db: AsyncIOMotorClient = Depends(get_database)):
     # 不过滤result
     db_his = await get_work_history(db, {'id': id}, show_result=True)
-    if db_his.status != 2 or not db_his.result:
+    if db_his.status != 1 or not db_his.result:
         raise HTTPException(HTTP_400_BAD_REQUEST, '文档无法审阅')
     if db_his.user_id != user.id or 0 not in user.role:
         raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
