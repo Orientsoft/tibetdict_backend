@@ -21,11 +21,11 @@ class WordStatDictCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, WordStatD
     pass
 
     @validator("word", pre=True, always=True)
-    def default_id(cls, v, values, **kwargs) -> str:
+    def replace_word(cls, v, values, **kwargs) -> str:
         return v.replace(u'༌', u'་')
 
     @validator("nature", pre=True, always=True)
-    def default_id(cls, v, values, **kwargs) -> str:
+    def replace_nature(cls, v, values, **kwargs) -> str:
         return v.replace(u'༌', u'་')
 
 
