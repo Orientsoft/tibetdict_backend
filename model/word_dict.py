@@ -20,6 +20,14 @@ class WordStatDictBaseModel(BaseModel):
 class WordStatDictCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, WordStatDictBaseModel):
     pass
 
+    @validator("word", pre=True, always=True)
+    def default_id(cls, v, values, **kwargs) -> str:
+        return v.replace(u'༌', u'་')
+
+    @validator("nature", pre=True, always=True)
+    def default_id(cls, v, values, **kwargs) -> str:
+        return v.replace(u'༌', u'་')
+
 
 class WordStatDictUpdateModel(BaseModel):
     id: str
@@ -33,4 +41,3 @@ class WordStatDictInDB(WordStatDictBaseModel):
     id: str
     createdAt: str
     updatedAt: str
-

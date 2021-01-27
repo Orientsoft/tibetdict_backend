@@ -72,14 +72,19 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
     if attr not in ['txt']:
         raise HTTPException(status_code=400, detail='100141')
     content = file.file.read().decode('utf-8')
+    # content = content.replace(u'༌', u'་')
     need_insert = []
     for line in content.splitlines():
         temp = line.split('\t')
-        if len(temp) not in [2, 3]:
+        item = dict(zip(['word', 'nature', 'name'], temp))
+        word = item.get('word')
+        nature = item.get('nature')
+        name = item.get('name')
+        if not word or not nature:
             continue
-        word = temp[0]
-        nature = temp[1]
-        name = temp[2:][0] if temp[2:] else None
+        count = await count_word_stat_dict_by_query(db, {'word': word, 'nature': nature, 'type': type})
+        if count:
+            continue
         data = WordStatDictCreateModel(
             word=word,
             nature=nature,
