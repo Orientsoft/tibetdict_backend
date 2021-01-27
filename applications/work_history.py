@@ -25,7 +25,7 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
                            db: AsyncIOMotorClient = Depends(get_database)):
     if len(file_ids) > max_limit:
         raise HTTPException(HTTP_400_BAD_REQUEST, '超过限制')
-    data_id = []
+    resp_data = []
     w = WordCount(conn=db)
     for file_id in file_ids:
         db_file = await get_file(db, {'id': file_id, 'user_id': user.id})
@@ -62,9 +62,13 @@ async def add_work_history(file_ids: List[str] = Body(...), work_type: WorkTypeE
         elif work_type == WorkTypeEnum.new:
             # todo 新词发现结果，存储到self_dict（需去重）
             await update_file(db, {'id': file_id}, {'$set': {'last_new': now}})
-        data_id.append(data.id)
+        resp_data.append({
+            'work_id': data.id,
+            'file_id': data.file_id,
+            'file_name': data.file_name
+        })
 
-    return {'data': data_id}
+    return {'data': resp_data}
 
 
 @router.get('/work', tags=['work'], name='历史记录')
