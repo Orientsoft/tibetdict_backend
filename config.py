@@ -26,3 +26,5 @@ MINIO_ACCESS = 'moop'
 MINIO_SECRET = 'd2VsY29tZTEK'
 MINIO_SECURE = True
 MINIO_BUCKET = 'tibetdict'
+# 藏语的分隔符，编码问题IDE可能显示不出来
+tibetan_full_point = '།'

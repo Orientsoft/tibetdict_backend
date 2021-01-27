@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from starlette.status import HTTP_400_BAD_REQUEST
-from config import database_name, word_stat_dict_collection_name, work_history_collection_name
+from config import database_name, word_stat_dict_collection_name, work_history_collection_name, \
+    self_dict_collection_name, tibetan_full_point
 from collections import Counter
 from common.upload import MinioUploadPrivate
 from loguru import logger
@@ -31,7 +32,7 @@ class WordCount:
         :return: 组装成一个字符为key，该字符计数为value的字典
         '''
         # start_time = time.time()
-        logger.info(self.content)
+        # logger.info(self.content)
         content_list = self.content.split(split)
         # Counter的结果类型继承dict的属性
         self.word_stat_in_content = Counter(content_list)
@@ -47,9 +48,9 @@ class WordCount:
         :return: 频率为key，颜色编号为value的字典
         '''
         if not word_stat_in_content:
-            logger.info(
-                'function "colouration" in class "WordCount" do not find self.word_stat_\
-                in_content and run function "split_and_count_file_content"')
+            # logger.info(
+            #     'function "colouration" in class "WordCount" do not find self.word_stat_\
+            #     in_content and run function "split_and_count_file_content"')
             self.split_and_count_file_content()
         colouration_result = {}
         # start_time = time.time()
@@ -82,33 +83,91 @@ class WordCount:
         '''
         try:
             if not self.content:
-                logger.info('run "get_content"')
+                # logger.info('run "get_content"')
                 await self.get_content(_id=_id)
             if not self.word_stat_in_content:
-                logger.info(
-                    'function "word_count" in class "WordCount" do not find self.word_stat_in_content \
-                    and run function "split_and_count_file_content"')
+                # logger.info(
+                #     'function "word_count" in class "WordCount" do not find self.word_stat_in_content \
+                #     and run function "split_and_count_file_content"')
                 self.split_and_count_file_content()
-            colouration_result = self.colouration(word_stat_in_content=self.word_stat_in_content)
             # start_time = time.time()
             query = {
                 'word': {'$in': list(self.word_stat_in_content.keys())},
-                'type': self.word_type
+                'type': self.word_type,
+                'is_exclude': False
             }
             # 此时查出来的的list都是有效数据
             result = self.conn[database_name][word_stat_dict_collection_name].find(query)
-            data_word_stat_dict = [x async for x in result]
+            data_word_stat_dict = list(set([x async for x in result]))
             result = []
+            word_stat_dict = {}
             for x in data_word_stat_dict:
+                word_stat_dict[x['word']] = self.word_stat_in_content[x['word']]
                 result.append({
                     'word': x['word'],
                     'nature': x['nature'],
                     'count': self.word_stat_in_content[x['word']],
-                    'color': colouration_result[self.word_stat_in_content[x['word']]],
                 })
             # logger.info('word_count used: %s' % str(start_time - self.time))
+            colouration_result = self.colouration(word_stat_in_content=word_stat_dict)
+            for x in result:
+                x['color'] = colouration_result[x['count']]
             result.sort(key=lambda x: x['count'], reverse=True)
             return result
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
+            return None
+
+    async def new_word(self, _id):
+        '''
+        传入word_history的id，获取到文章内容self.content，分词得到word_stat_in_content，查询数据库后遍历文章(list)做差集，即为新词
+        取上下文算法：用序列遍历原文章list，取到新词时for循环组装上下文
+        :return: [{'word': str, 'context': str}]
+        '''
+        try:
+            if not self.content:
+                await self.get_content(_id=_id)
+            if not self.word_stat_in_content:
+                self.split_and_count_file_content()
+            query = {
+                'word': {'$in': list(self.word_stat_in_content.keys())},
+                'type': self.word_type,
+                'is_exclude': False
+            }
+            result = self.conn[database_name][word_stat_dict_collection_name].find(query)
+            query = {
+                'word': {'$in': list(self.word_stat_in_content.keys())}
+            }
+            result_self = self.conn[database_name][self_dict_collection_name].find(query)
+            # 组装元素为word的列表
+            data_word_stat_dict = [x['word'] async for x in result]
+            # 自有词典与平台词典取并集
+            async for x in result_self:
+                data_word_stat_dict.append(x['word'])
+            data_content_list = self.content.split(' ')
+            new_word = []
+            for x in range(len(data_content_list)):
+                if data_content_list[x] not in data_word_stat_dict:
+                    # 若该词已经统计过，则不再重复统计
+                    for y in new_word:
+                        if data_content_list[x] == y['word']:
+                            continue
+                    upward = ''
+                    for y in range(x - 1, -1, -1):
+                        if tibetan_full_point in data_content_list[y]:
+                            break
+                        upward = data_content_list[y] + ' ' + upward
+                    downward = ''
+                    for y in range(x + 1, len(data_content_list)):
+                        downward = downward + data_content_list[y]
+                        if tibetan_full_point in data_content_list[y]:
+                            break
+                    new_word.append({
+                        'word': data_content_list[x],
+                        'context': upward + '"' + data_content_list[x] + '"' + downward
+                    })
+            return new_word
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
