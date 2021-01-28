@@ -6,6 +6,7 @@ from loguru import logger
 from copy import deepcopy
 import docx
 import os, subprocess
+import re
 import platform
 import shutil
 
@@ -86,6 +87,7 @@ async def upload_file(file: UploadFile = File(...), user: User = Depends(get_cur
         data.is_check = True
     else:
         parsed_content = origin_content
+    parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", parsed_content)
     # 提交分词结果
     m.commit(parsed_content.encode('utf-8'), data.parsed)
     # 文件指纹
@@ -127,7 +129,7 @@ async def get_file_content(file_id: str,
         raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
     m = MinioUploadPrivate()
     content = m.get_object(db_file.parsed)
-    return {'data': content}
+    return {'data': content.decode('utf-8')}
 
 
 @router.patch('/file', tags=['file'], name='修改文件（parsed,is_check）')
@@ -171,4 +173,3 @@ async def del_file(file_id: str,
     m.remove(db_file.origin)
     await delete_file(db, {'id': id, 'user_id': user.id})
     return {'msg': '2002'}
-
