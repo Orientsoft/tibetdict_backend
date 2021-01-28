@@ -98,7 +98,7 @@ class WordCount:
             }
             # 此时查出来的的list都是有效数据
             result = self.conn[database_name][word_stat_dict_collection_name].find(query)
-            data_word_stat_dict = list(set([x async for x in result]))
+            data_word_stat_dict = [x async for x in result]
             result = []
             word_stat_dict = {}
             for x in data_word_stat_dict:
