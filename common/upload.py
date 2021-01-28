@@ -4,6 +4,8 @@ from minio import Minio
 from minio.error import ResponseError, BucketAlreadyExists, BucketAlreadyOwnedByYou
 from io import BytesIO
 from datetime import timedelta
+import traceback
+from loguru import logger
 
 import config
 
@@ -36,7 +38,9 @@ class MinioUploadPrivate:
     def get_object(self, full_path: str) -> bytes:
         try:
             data = mc.get_object(self.bucket, full_path).data
-        except:
+        except Exception as e:
+            traceback.print_exc()
+            logger.error(e)
             data = b''
         return data
 
