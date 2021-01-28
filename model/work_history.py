@@ -19,7 +19,8 @@ class WorkHistoryBaseModel(BaseModel):
     o_hash: str
     p_hash: str
     work_type: WorkTypeEnum
-    status: int = Field(..., ge=0, le=2)
+    p_status: int = Field(None, ge=0, le=2)
+    o_status: int = Field(None, ge=0, le=2)
     p_result: List[dict] = None
     o_result: List[dict] = None
 

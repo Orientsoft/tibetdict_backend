@@ -2,6 +2,7 @@ from common.mongodb import AsyncIOMotorClient
 from typing import Optional, List
 from model.word_dict import WordStatDictCreateModel, WordStatDictInDB
 from config import database_name, word_stat_dict_collection_name
+from common.unit_word import WordPoolModel
 
 
 async def get_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict]) -> WordStatDictInDB:
@@ -33,3 +34,14 @@ async def count_word_stat_dict_by_query(conn: AsyncIOMotorClient, query: Optiona
 async def update_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict], item: dict):
     conn[database_name][word_stat_dict_collection_name].update_one(query, item)
     return True
+
+
+async def get_dict(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = conn[database_name][word_stat_dict_collection_name].aggregate([{'$match': query},
+                                                                            {'$project': {'_id': 0, 'id': 1, 'word': 1,
+                                                                                          'nature': 1,
+                                                                                          'length': {
+                                                                                              '$strLenCP': "$word"}}},
+                                                                            {'$sort': {'length': -1}}
+                                                                            ])
+    return [WordPoolModel(**item) async for item in result]
