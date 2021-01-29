@@ -105,6 +105,7 @@ class WordCount:
             for x in data_word_stat_dict:
                 word_stat_dict[x['word']] = self.word_stat_in_content[x['word']]
                 result.append({
+                    'id': x['id'],
                     'word': x['word'],
                     'nature': x['nature'],
                     'count': self.word_stat_in_content[x['word']],
@@ -117,7 +118,7 @@ class WordCount:
             result.sort(key=lambda x: x['count'], reverse=True)
             # 生成替换后的模板
             for key, value in replace_dict.items():
-                self.content = self.content.replace(key, value)
+                self.content = self.content.replace(key, '[' + value + ']')
             logger.info(self.content)
             return result, self.content
         except Exception as e:

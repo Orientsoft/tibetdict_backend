@@ -151,7 +151,7 @@ async def back_calc_parsed_result(db: AsyncIOMotorClient, work_id: str):
     # 修改file.last_stat, file.last_new
     now = datetime.now(tz=timezone).isoformat()
     if data.work_type == WorkTypeEnum.stat:
-        p_result,p_context = await w.word_count(_id=data.id)
+        p_result, p_context = await w.word_count(_id=data.id)
         update_obj = {}
         # parsed 结果
         if p_result is not None:
