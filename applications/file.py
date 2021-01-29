@@ -171,5 +171,5 @@ async def del_file(file_id: str,
     m = MinioUploadPrivate()
     m.remove(db_file.parsed)
     m.remove(db_file.origin)
-    await delete_file(db, {'id': id, 'user_id': user.id})
+    await delete_file(db, {'id': file_id, 'user_id': user.id})
     return {'msg': '2002'}
