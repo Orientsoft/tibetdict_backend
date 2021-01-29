@@ -101,6 +101,7 @@ class WordCount:
             data_word_stat_dict = [x async for x in result]
             result = []
             word_stat_dict = {}
+            replace_dict = {}
             for x in data_word_stat_dict:
                 word_stat_dict[x['word']] = self.word_stat_in_content[x['word']]
                 result.append({
@@ -108,12 +109,17 @@ class WordCount:
                     'nature': x['nature'],
                     'count': self.word_stat_in_content[x['word']],
                 })
+                replace_dict[x['word']] = x['id']
             # logger.info('word_count used: %s' % str(start_time - self.time))
             colouration_result = self.colouration(word_stat_in_content=word_stat_dict)
             for x in result:
                 x['color'] = colouration_result[x['count']]
             result.sort(key=lambda x: x['count'], reverse=True)
-            return result
+            # 生成替换后的模板
+            for key, value in replace_dict.items():
+                self.content = self.content.replace(key, value)
+            logger.info(self.content)
+            return result, self.content
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
