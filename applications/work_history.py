@@ -32,7 +32,7 @@ async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str
     if len(file_ids) > max_limit:
         raise HTTPException(HTTP_400_BAD_REQUEST, '超过限制')
     resp_data = []
-    # word_pool
+    # word_pool  todo cache
     word_pool = await get_dict(db, {'type': 'stat', 'is_exclude': False})
     for file_id in file_ids:
         db_file = await get_file(db, {'id': file_id, 'user_id': user.id})
@@ -64,7 +64,8 @@ async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str
             'file_id': data.file_id,
             'file_name': data.file_name
         })
-        background_tasks.add_task(back_calc_result, db, data.id, word_pool)
+        background_tasks.add_task(back_calc_parsed_result, db, data.id)
+        background_tasks.add_task(back_calc_origin_result, db, data.id, word_pool)
     return {'data': resp_data}
 
 
@@ -143,17 +144,14 @@ async def work_new_result(ids: List[str] = Body(..., embed=True),
     return db_self_dict
 
 
-async def back_calc_result(db: AsyncIOMotorClient, work_id: str, word_pool: List):
+async def back_calc_parsed_result(db: AsyncIOMotorClient, work_id: str):
     data = await get_work_history(db, {'id': work_id})
     m = MinioUploadPrivate()
-    origin = m.get_object(data.origin)
     w = WordCount(db)
-    u = UnitStat(word_pool)
     # 修改file.last_stat, file.last_new
     now = datetime.now(tz=timezone).isoformat()
     if data.work_type == WorkTypeEnum.stat:
         p_result = await w.word_count(_id=data.id)
-
         update_obj = {}
         # parsed 结果
         if p_result is not None:
@@ -161,14 +159,6 @@ async def back_calc_result(db: AsyncIOMotorClient, work_id: str, word_pool: List
             update_obj['p_result'] = p_result
         else:
             update_obj['p_status'] = 2
-        # origin 结果
-        o_result, tmp_text = u.run(origin.decode('utf-8'))
-        if o_result is not None:
-            update_obj['o_status'] = 1
-            update_obj['o_result'] = o_result
-            m.commit(tmp_text.encode('utf-8'), f'tmp/{data.user_id}/{data.id}.otmp')
-        else:
-            update_obj['o_status'] = 2
         await update_work_history(db, {'id': data.id}, {'$set': update_obj})
         await update_file(db, {'id': data.file_id}, {'$set': {'last_stat': now}})
     elif data.work_type == WorkTypeEnum.new:
@@ -199,3 +189,25 @@ async def back_calc_result(db: AsyncIOMotorClient, work_id: str, word_pool: List
             update_obj['p_status'] = 2
         await update_work_history(db, {'id': data.id}, {'$set': update_obj})
         await update_file(db, {'id': data.file_id}, {'$set': {'last_new': now}})
+
+
+async def back_calc_origin_result(db: AsyncIOMotorClient, work_id: str, word_pool: List):
+    data = await get_work_history(db, {'id': work_id})
+    m = MinioUploadPrivate()
+    origin = m.get_object(data.origin)
+    u = UnitStat(word_pool)
+    now = datetime.now(tz=timezone).isoformat()
+    if data.work_type == WorkTypeEnum.stat:
+        update_obj = {}
+        # origin 结果
+        o_result, tmp_text = u.run(origin.decode('utf-8'))
+        if o_result is not None:
+            update_obj['o_status'] = 1
+            update_obj['o_result'] = o_result
+            m.commit(tmp_text.encode('utf-8'), f'tmp/{data.user_id}/{data.id}.otmp')
+        else:
+            update_obj['o_status'] = 2
+        await update_work_history(db, {'id': data.id}, {'$set': update_obj})
+        await update_file(db, {'id': data.file_id}, {'$set': {'last_stat': now}})
+    elif data.work_type == WorkTypeEnum.new:
+        pass
