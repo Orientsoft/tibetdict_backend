@@ -3,8 +3,10 @@ from starlette.status import HTTP_400_BAD_REQUEST
 from typing import List
 from collections import Counter
 from loguru import logger
+from fastapi_plugins import depends_redis
+from aioredis import Redis
 from datetime import datetime
-from config import timezone, max_limit
+from config import timezone, max_limit, WORD_POOL_KEY
 from model.user import User
 from model.work_history import WorkHistoryCreateModel, WorkTypeEnum
 from model.self_dict import SelfDictCreateModel
@@ -18,6 +20,7 @@ from crud.work_history import create_work_history, get_work_history_list, count_
     get_work_history, get_work_history_result_sum, update_work_history
 from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result
 from crud.word_dict import get_dict
+from common.cache import set_cache, get_cache, word_pool_check_cache
 
 from common.word_count import WordCount
 
@@ -28,12 +31,17 @@ router = APIRouter()
 async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str] = Body(...),
                            work_type: WorkTypeEnum = Body(...),
                            user: User = Depends(get_current_user_authorizer(required=True)),
-                           db: AsyncIOMotorClient = Depends(get_database)):
+                           db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)):
     if len(file_ids) > max_limit:
         raise HTTPException(HTTP_400_BAD_REQUEST, '超过限制')
     resp_data = []
-    # word_pool  todo cache
-    # word_pool = await get_dict(db, {'type': 'stat', 'is_exclude': False})
+    # word_pool cache
+    cache = get_cache(rd, WORD_POOL_KEY)
+    if not cache:
+        word_pool = await get_dict(db, {'type': 'stat', 'is_exclude': False})
+        await word_pool_check_cache(rd, WORD_POOL_KEY, word_pool)
+    else:
+        word_pool = cache
     for file_id in file_ids:
         db_file = await get_file(db, {'id': file_id, 'user_id': user.id})
         if not db_file:
@@ -65,7 +73,7 @@ async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str
             'file_name': data.file_name
         })
         background_tasks.add_task(back_calc_parsed_result, db, data.id)
-        # background_tasks.add_task(back_calc_origin_result, db, data.id, word_pool)
+        background_tasks.add_task(back_calc_origin_result, db, data.id, word_pool)
     return {'data': resp_data}
 
 

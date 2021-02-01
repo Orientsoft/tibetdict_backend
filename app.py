@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from respcode import data
 from loguru import logger
 from typing import Union
+import fastapi_plugins
 from applications.user import router as user_router
 from applications.word_dict import router as word_dict_router
 from applications.self_dict import router as self_dict_router
@@ -18,6 +19,7 @@ from applications.file import router as file_router
 from applications.work_history import router as work_router
 import traceback
 import uvicorn
+from common.redis import redis_config
 
 app = FastAPI(title='tibetan', debug=DEBUG, version=VERSION)
 
@@ -70,6 +72,19 @@ app.add_middleware(
 
 app.add_event_handler("startup", connect_to_mongodb)
 app.add_event_handler("shutdown", close_mongo_connection)
+
+
+@app.on_event('startup')
+async def startup() -> None:
+    await fastapi_plugins.redis_plugin.init_app(app, config=redis_config)
+    await fastapi_plugins.redis_plugin.init()
+
+
+@app.on_event('shutdown')
+async def on_shutdown() -> None:
+    await fastapi_plugins.redis_plugin.terminate()
+
+
 app.add_exception_handler(HTTPException, http_error_handler)
 app.add_exception_handler(RequestValidationError, http422_error_handler)
 
@@ -85,5 +100,5 @@ if __name__ == '__main__':
         host=HOST,
         port=PORT,
         reload=True,
-        workers=1
+        workers=4
     )

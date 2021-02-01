@@ -41,3 +41,9 @@ class WordStatDictInDB(WordStatDictBaseModel):
     id: str
     createdAt: str
     updatedAt: str
+
+
+class WordPoolModel(BaseModel):
+    id: str
+    word: str
+    nature: str

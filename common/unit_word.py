@@ -1,13 +1,6 @@
 #!coding=utf-8
 from typing import List
 import time
-from pydantic import BaseModel
-
-
-class WordPoolModel(BaseModel):
-    id: str
-    word: str
-    nature: str
 
 
 class UnitStat:
@@ -20,7 +13,7 @@ class UnitStat:
     flags_last_3 = [u'འི', u'འུ', u'འོ']
     color_num = 6
 
-    def __init__(self, word_pool: List[WordPoolModel]):
+    def __init__(self, word_pool: List):
         self.word_pool = word_pool
         for b in self.flags_head:
             self.flags_head_byte.append(ord(b))
@@ -52,12 +45,12 @@ class UnitStat:
         # 遍历词库
         for item in self.word_pool:
             # 词典id
-            word_index = item.id
+            word_index = item['id']
             # 词
-            word = item.word.strip()
+            word = item['word'].strip()
             word = word[:-1]
             # 词性
-            nature = item.nature.strip()
+            nature = item['nature'].strip()
 
             _offset = 0
 
@@ -190,12 +183,11 @@ if __name__ == '__main__':
     myclient = pymongo.MongoClient("mongodb://192.168.0.61:37017")
     mydb = myclient["tibetan"]
     start = time.time()
-    db_data = mydb['word_stat_dict'].aggregate([{'$match': {'type': 'stat', 'is_exclude': False}},
+    word_pool = mydb['word_stat_dict'].aggregate([{'$match': {'type': 'stat', 'is_exclude': False}},
                                                 {'$project': {'_id': 0, 'id': 1, 'word': 1, 'nature': 1,
                                                               'length': {'$strLenCP': "$word"}}},
                                                 {'$sort': {'length': -1}}
                                                 ])
-    word_pool = [WordPoolModel(**item) for item in db_data]
     u = UnitStat(word_pool=word_pool)
     with open('./data/0a1cf472a154d6ab9044a352329db162.txt', 'r') as f:
         source = f.read()

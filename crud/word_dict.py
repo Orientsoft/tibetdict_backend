@@ -1,8 +1,7 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional, List
-from model.word_dict import WordStatDictCreateModel, WordStatDictInDB
+from model.word_dict import WordStatDictCreateModel, WordStatDictInDB, WordPoolModel
 from config import database_name, word_stat_dict_collection_name
-from common.unit_word import WordPoolModel
 
 
 async def get_word_stat_dict(conn: AsyncIOMotorClient, query: Optional[dict]) -> WordStatDictInDB:
