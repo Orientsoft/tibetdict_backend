@@ -5,6 +5,7 @@ from config import database_name, word_stat_dict_collection_name, work_history_c
 from collections import Counter
 from common.upload import MinioUploadPrivate
 from loguru import logger
+import uuid
 import traceback
 
 
@@ -119,7 +120,7 @@ class WordCount:
             # 生成替换后的模板
             for key, value in replace_dict.items():
                 self.content = self.content.replace(key, '[' + value + ']')
-            logger.info(self.content)
+            # logger.info(self.content)
             return result, self.content
         except Exception as e:
             traceback.print_exc()
@@ -171,10 +172,26 @@ class WordCount:
                         if tibetan_full_point in data_content_list[y]:
                             break
                     new_word.append({
+                        'id': uuid.uuid1().hex,
                         'word': data_content_list[x],
                         'context': upward + '"' + data_content_list[x] + '"' + downward
                     })
-            return new_word
+            # 将新词从长到短排序，文章已经做过分词，所以不用考虑交叉匹配的错误
+            new_word.sort(key=lambda x: len(x['word']), reverse=True)
+            # 遍历new_word列表，依次replace
+            for x in new_word:
+                if '\n' in x['word']:
+                    x['word'].replace('\n', '')
+                if '\r' in x['word']:
+                    x['word'].replace('\r', '')
+                if '\t' in x['word']:
+                    x['word'].replace('\t', '')
+                if x['word'] == '':
+                    new_word.remove(x)
+                    continue
+                self.content = self.content.replace(x['word'], '[' + x['id'] + ']')
+                # logger.info(self.content)
+            return new_word, self.content
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
