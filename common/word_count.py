@@ -13,10 +13,9 @@ import traceback
 
 
 class WordCount:
-    def __init__(self, conn, word_type: str = 'stat', color_total: int = 6):
+    def __init__(self, conn, color_total: int = 6):
         self.content = None
         self.conn = conn
-        self.word_type = word_type
         self.word_stat_in_content = None
         self.color_total = color_total
         # self.time = time.time()
@@ -94,7 +93,7 @@ class WordCount:
             # start_time = time.time()
             query = {
                 'word': {'$in': list(self.word_stat_in_content.keys())},
-                'type': self.word_type,
+                'type': 'stat',
                 'is_exclude': False
             }
             # 此时查出来的的list都是有效数据
@@ -140,7 +139,7 @@ class WordCount:
                 self.split_and_count_file_content()
             query = {
                 'word': {'$in': list(self.word_stat_in_content.keys())},
-                'type': self.word_type,
+                'type': 'new',
                 'is_exclude': False
             }
             result = self.conn[database_name][word_stat_dict_collection_name].find(query)
