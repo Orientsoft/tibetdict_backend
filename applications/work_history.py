@@ -72,6 +72,13 @@ async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str
             'file_id': data.file_id,
             'file_name': data.file_name
         })
+        # 更新文件库状态
+        now = datetime.now(tz=timezone).isoformat()
+        if data.work_type == WorkTypeEnum.stat:
+            await update_file(db, {'id': data.file_id}, {'$set': {'last_stat': now}})
+        elif data.work_type == WorkTypeEnum.new:
+            await update_file(db, {'id': data.file_id}, {'$set': {'last_new': now}})
+        # 添加后端任务
         background_tasks.add_task(back_calc_parsed_result, db, data.id)
         background_tasks.add_task(back_calc_origin_result, db, data.id, word_pool)
     return {'data': resp_data}
@@ -152,71 +159,75 @@ async def work_new_result(ids: List[str] = Body(..., embed=True),
     return db_self_dict
 
 
+# parsed 结果计算
 async def back_calc_parsed_result(db: AsyncIOMotorClient, work_id: str):
     data = await get_work_history(db, {'id': work_id})
     m = MinioUploadPrivate()
     w = WordCount(db)
-    # 修改file.last_stat, file.last_new
-    now = datetime.now(tz=timezone).isoformat()
     if data.work_type == WorkTypeEnum.stat:
-        p_result, p_context = await w.word_count(_id=data.id)
-        update_obj = {}
-        # parsed 结果
-        if p_result is not None:
-            update_obj['p_status'] = 1
-            update_obj['p_result'] = p_result
-            m.commit(p_context.encode('utf-8'), f'result/parsed/{data.user_id}/{data.id}.txt')
-        else:
-            update_obj['p_status'] = 2
-        await update_work_history(db, {'id': data.id}, {'$set': update_obj})
-        await update_file(db, {'id': data.file_id}, {'$set': {'last_stat': now}})
+        p_result, p_result = await w.word_count(_id=data.id)
+        await result_deal(db, work_id, data.user_id, p_result, p_result, False)
     elif data.work_type == WorkTypeEnum.new:
-        result = []  # 新词发现算法结果
-        update_obj = {}
-        if result is not None:
-            update_obj['p_status'] = 1
-            update_obj['p_result'] = result
-            add_self_dict_data = []
-            for r in result:
-                word = r.get('word')
-                nature = r.get('nature', None),
-                context = r.get('context', None),
-                count = await count_self_dict_by_query(db, {'word': word, 'context': context, 'user_id': data.user_id,
-                                                            'is_check': True})
-                if count > 0:
-                    continue
-                temp_data = SelfDictCreateModel(
-                    word=word,
-                    nature=nature,
-                    context=context,
-                    user_id=data.user_id,
-                    word_history_id=data.id,
-                )
-                add_self_dict_data.append(temp_data.dict())
-            await batch_create_self_dict(db, add_self_dict_data)
-        else:
-            update_obj['p_status'] = 2
-        await update_work_history(db, {'id': data.id}, {'$set': update_obj})
-        await update_file(db, {'id': data.file_id}, {'$set': {'last_new': now}})
+        p_result, p_context = w.new_word(_id=data.id)  # 新词发现算法结果
+        await result_deal(db, work_id, data.user_id, p_result, p_result, True)
+    else:
+        return
 
 
+# origin 结果计算
 async def back_calc_origin_result(db: AsyncIOMotorClient, work_id: str, word_pool: List):
     data = await get_work_history(db, {'id': work_id})
     m = MinioUploadPrivate()
     origin = m.get_object(data.origin)
     u = UnitStat(word_pool)
-    now = datetime.now(tz=timezone).isoformat()
     if data.work_type == WorkTypeEnum.stat:
-        update_obj = {}
-        # origin 结果
         o_result, tmp_text = u.run(origin.decode('utf-8'))
-        if o_result is not None:
-            update_obj['o_status'] = 1
-            update_obj['o_result'] = o_result
-            m.commit(tmp_text.encode('utf-8'), f'result/origin/{data.user_id}/{data.id}.txt')
-        else:
-            update_obj['o_status'] = 2
-        await update_work_history(db, {'id': data.id}, {'$set': update_obj})
-        await update_file(db, {'id': data.file_id}, {'$set': {'last_stat': now}})
+        await result_deal(db, work_id, data.user_id, o_result, tmp_text, False)
     elif data.work_type == WorkTypeEnum.new:
         pass
+        # todo 待实现
+        # o_result, tmp_text = u.run(origin.decode('utf-8'))
+        # await result_deal(db, work_id, data.user_id, o_result, tmp_text, True)
+    else:
+        return
+
+
+async def result_deal(db, work_id, user_id, result, context, calc_type, is_save_to_dict: bool = False):
+    if calc_type == 'origin':
+        _status_key = 'o_status'
+        _result_key = 'o_result'
+    elif calc_type == 'parsed':
+        _status_key = 'p_status'
+        _result_key = 'p_result'
+    else:
+        return
+    m = MinioUploadPrivate()
+    update_obj = {}
+    if result is not None:
+        update_obj[_status_key] = 1
+        update_obj[_result_key] = result
+        m.commit(context.encode('utf-8'), f'result/{calc_type}/{user_id}/{work_id}.txt')
+        if is_save_to_dict:
+            add_self_dict_data = []
+            for r in result:
+                word = r.get('word')
+                nature = r.get('nature', None),
+                context = r.get('context', None),
+                _id = r.get('id', None),
+                count = await count_self_dict_by_query(db, {'word': word, 'context': context, 'user_id': user_id,
+                                                            'is_check': True})
+                if count > 0:
+                    continue
+                temp_data = SelfDictCreateModel(
+                    id=_id,
+                    word=word,
+                    nature=nature,
+                    context=context,
+                    user_id=user_id,
+                    word_history_id=work_id,
+                )
+                add_self_dict_data.append(temp_data.dict())
+            await batch_create_self_dict(db, add_self_dict_data)
+    else:
+        update_obj[_status_key] = 2
+    await update_work_history(db, {'id': work_id}, {'$set': update_obj})
