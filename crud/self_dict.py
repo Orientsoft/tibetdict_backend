@@ -43,11 +43,24 @@ async def delete_self_dict(conn: AsyncIOMotorClient, query: Optional[dict]):
 async def get_work_new_word_result(conn: AsyncIOMotorClient, query: Optional[dict]):
     result = conn[database_name][self_dict_collection_name].aggregate([
         {'$match': query},
-        {'$lookup': {'from': work_history_collection_name, 'localField': 'work_history_id', 'foreignField': 'id',
+        {"$lookup": {'from': work_history_collection_name,
+                     'let': {'temp_id': "$work_history_id"},
+                     'pipeline': [
+                         {'$project': {'file_name': 1, 'file_id': 1, 'id': 1}},
+                         {'$match':
+                             {'$expr':
+                                 {'$and':
+                                     [
+                                         {'$eq': ["$id", "$$temp_id"]}
+                                     ]
+                                 }
+                             }
+                         }
+                     ],
                      'as': 'work'}},
         {'$unwind': '$work'},
-        {'$sort': {'createdAt': -1}},
         {'$project': {'file_name': '$work.file_name', 'file_id': '$work.file_id', 'word': 1, 'nature': 1, 'context': 1,
-                      'user_id': 1, 'createdAt': 1, 'is_check': 1, 'work_id': '$work.id', 'id': 1, '_id': 0}}
+                      'user_id': 1, 'createdAt': 1, 'is_check': 1, 'work_id': '$work.id', 'id': 1, '_id': 0}},
+        {'$sort': {'createdAt': -1}}
     ])
     return [x async for x in result]

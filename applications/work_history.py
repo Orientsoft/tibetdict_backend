@@ -18,7 +18,8 @@ from common.unit_word import UnitStat
 from crud.file import get_file, update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
     get_work_history, get_work_history_result_sum, update_work_history
-from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result
+from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result, \
+    get_self_dict_list
 from crud.word_dict import get_dict
 from common.cache import set_cache, get_cache, word_pool_check_cache
 
@@ -152,11 +153,17 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
 
 
 @router.post('/work/new/result', tags=['work'], name='统计结果--新词发现')
-async def work_new_result(ids: List[str] = Body(..., embed=True),
+async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Body(...), limit: int = Body(...),
                           user: User = Depends(get_current_user_authorizer(required=True)),
                           db: AsyncIOMotorClient = Depends(get_database)):
-    db_self_dict = await get_work_new_word_result(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
-    return {'data': db_self_dict, 'total': len(db_self_dict)}
+    # db_self_dict = await get_work_new_word_result(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
+    import time
+    start = time.time()
+    query_obj = {'work_history_id': {'$in': ids}, 'user_id': user.id}
+    db_self_dict = await get_self_dict_list(db, query_obj, page, limit)
+    count = await count_self_dict_by_query(db,query_obj)
+    print(time.time() - start)
+    return {'data': db_self_dict, 'total': count}
 
 
 # parsed 结果计算
