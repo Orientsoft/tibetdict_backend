@@ -36,7 +36,7 @@ async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str
         raise HTTPException(HTTP_400_BAD_REQUEST, '超过限制')
     resp_data = []
     # word_pool cache
-    cache = get_cache(rd, WORD_POOL_KEY)
+    cache = await get_cache(rd, WORD_POOL_KEY)
     if not cache:
         word_pool = await get_dict(db, {'type': 'stat', 'is_exclude': False})
         await word_pool_check_cache(rd, WORD_POOL_KEY, word_pool)
@@ -91,7 +91,7 @@ async def history_stat(work_type: WorkTypeEnum, user_id: str = None, file_name: 
                        user: User = Depends(get_current_user_authorizer(required=True)),
                        db: AsyncIOMotorClient = Depends(get_database)):
     if 0 in user.role:
-        u_id = user_id
+        u_id = user_id or user.id
     else:
         u_id = user.id
     query_obj = {'user_id': u_id, 'work_type': work_type}
@@ -162,14 +162,13 @@ async def work_new_result(ids: List[str] = Body(..., embed=True),
 # parsed 结果计算
 async def back_calc_parsed_result(db: AsyncIOMotorClient, work_id: str):
     data = await get_work_history(db, {'id': work_id})
-    m = MinioUploadPrivate()
     w = WordCount(db)
     if data.work_type == WorkTypeEnum.stat:
-        p_result, p_result = await w.word_count(_id=data.id)
-        await result_deal(db, work_id, data.user_id, p_result, p_result, False)
+        p_result, tmp_text = await w.word_count(_id=data.id)
+        await result_deal(db, work_id, data.user_id, p_result, tmp_text, 'parsed', False)
     elif data.work_type == WorkTypeEnum.new:
-        p_result, p_context = w.new_word(_id=data.id)  # 新词发现算法结果
-        await result_deal(db, work_id, data.user_id, p_result, p_result, True)
+        p_result, tmp_text = w.new_word(_id=data.id)  # 新词发现算法结果
+        await result_deal(db, work_id, data.user_id, p_result, tmp_text, 'parsed', True)
     else:
         return
 
@@ -182,7 +181,7 @@ async def back_calc_origin_result(db: AsyncIOMotorClient, work_id: str, word_poo
     u = UnitStat(word_pool)
     if data.work_type == WorkTypeEnum.stat:
         o_result, tmp_text = u.run(origin.decode('utf-8'))
-        await result_deal(db, work_id, data.user_id, o_result, tmp_text, False)
+        await result_deal(db, work_id, data.user_id, o_result, tmp_text, 'origin', False)
     elif data.work_type == WorkTypeEnum.new:
         pass
         # todo 待实现
@@ -205,7 +204,7 @@ async def result_deal(db, work_id, user_id, result, context, calc_type, is_save_
     update_obj = {}
     if result is not None:
         update_obj[_status_key] = 1
-        update_obj[_result_key] = result
+        update_obj[_result_key] = list(result)
         m.commit(context.encode('utf-8'), f'result/{calc_type}/{user_id}/{work_id}.txt')
         if is_save_to_dict:
             add_self_dict_data = []
@@ -230,4 +229,5 @@ async def result_deal(db, work_id, user_id, result, context, calc_type, is_save_
             await batch_create_self_dict(db, add_self_dict_data)
     else:
         update_obj[_status_key] = 2
+    print(update_obj)
     await update_work_history(db, {'id': work_id}, {'$set': update_obj})

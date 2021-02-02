@@ -174,6 +174,7 @@ class UnitStat:
         color = self.color_divide(list(set(count_vals)))
         for item in count_result:
             item['color'] = color.get(item['count'])
+        text_result.replace(u"->་", "")
         return count_result, text_result
 
 
@@ -184,10 +185,10 @@ if __name__ == '__main__':
     mydb = myclient["tibetan"]
     start = time.time()
     word_pool = mydb['word_stat_dict'].aggregate([{'$match': {'type': 'stat', 'is_exclude': False}},
-                                                {'$project': {'_id': 0, 'id': 1, 'word': 1, 'nature': 1,
-                                                              'length': {'$strLenCP': "$word"}}},
-                                                {'$sort': {'length': -1}}
-                                                ])
+                                                  {'$project': {'_id': 0, 'id': 1, 'word': 1, 'nature': 1,
+                                                                'length': {'$strLenCP': "$word"}}},
+                                                  {'$sort': {'length': -1}}
+                                                  ])
     u = UnitStat(word_pool=word_pool)
     with open('./data/0a1cf472a154d6ab9044a352329db162.txt', 'r') as f:
         source = f.read()
