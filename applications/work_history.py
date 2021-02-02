@@ -39,7 +39,7 @@ async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str
     cache = await get_cache(rd, WORD_POOL_KEY)
     if not cache:
         word_pool = await get_dict(db, {'type': 'stat', 'is_exclude': False})
-        await word_pool_check_cache(rd, WORD_POOL_KEY, word_pool)
+        word_pool = await word_pool_check_cache(rd, WORD_POOL_KEY, word_pool)
     else:
         word_pool = cache
     for file_id in file_ids:
@@ -156,7 +156,7 @@ async def work_new_result(ids: List[str] = Body(..., embed=True),
                           user: User = Depends(get_current_user_authorizer(required=True)),
                           db: AsyncIOMotorClient = Depends(get_database)):
     db_self_dict = await get_work_new_word_result(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
-    return db_self_dict
+    return {'data': db_self_dict, 'total': len(db_self_dict)}
 
 
 # parsed 结果计算
@@ -167,7 +167,7 @@ async def back_calc_parsed_result(db: AsyncIOMotorClient, work_id: str):
         p_result, tmp_text = await w.word_count(_id=data.id)
         await result_deal(db, work_id, data.user_id, p_result, tmp_text, 'parsed', False)
     elif data.work_type == WorkTypeEnum.new:
-        p_result, tmp_text = w.new_word(_id=data.id)  # 新词发现算法结果
+        p_result, tmp_text = await w.new_word(_id=data.id)  # 新词发现算法结果
         await result_deal(db, work_id, data.user_id, p_result, tmp_text, 'parsed', True)
     else:
         return
@@ -210,9 +210,9 @@ async def result_deal(db, work_id, user_id, result, context, calc_type, is_save_
             add_self_dict_data = []
             for r in result:
                 word = r.get('word')
-                nature = r.get('nature', None),
-                context = r.get('context', None),
-                _id = r.get('id', None),
+                nature = r.get('nature', None)
+                context = r.get('context', None)
+                _id = r.get('id')
                 count = await count_self_dict_by_query(db, {'word': word, 'context': context, 'user_id': user_id,
                                                             'is_check': True})
                 if count > 0:
@@ -223,7 +223,7 @@ async def result_deal(db, work_id, user_id, result, context, calc_type, is_save_
                     nature=nature,
                     context=context,
                     user_id=user_id,
-                    word_history_id=work_id,
+                    work_history_id=work_id,
                 )
                 add_self_dict_data.append(temp_data.dict())
             await batch_create_self_dict(db, add_self_dict_data)

@@ -57,3 +57,4 @@ async def word_pool_check_cache(rd: Redis, key: str, word_pool: List):
             })
     save_result = result + _tmp_result
     await set_cache(rd, key, save_result, 3600)
+    return save_result

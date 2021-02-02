@@ -8,7 +8,7 @@ class SelfDictBaseModel(BaseModel):
     nature: str = None
     context: str = None
     is_check: bool = False
-    word_history_id: str = None
+    work_history_id: str = None
 
 
 class SelfDictCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, SelfDictBaseModel):

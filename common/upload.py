@@ -39,8 +39,8 @@ class MinioUploadPrivate:
         try:
             data = mc.get_object(self.bucket, full_path).data
         except Exception as e:
-            traceback.print_exc()
             logger.error(e)
+            logger.error(full_path)
             data = b''
         return data
 
