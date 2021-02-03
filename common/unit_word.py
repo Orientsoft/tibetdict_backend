@@ -18,6 +18,14 @@ class UnitStat:
         for b in self.flags_head:
             self.flags_head_byte.append(ord(b))
 
+    # 去掉末尾的་
+    @staticmethod
+    def word_valid(word):
+        _tmp = word.split(u'་')
+        _word = u'་'.join(_tmp[:-1])
+
+        return _word
+
     def color_divide(self, vals: List[int]):
         vals.sort(reverse=True)
         _tmp_length = int(len(vals) / self.color_num)
@@ -174,7 +182,10 @@ class UnitStat:
         color = self.color_divide(list(set(count_vals)))
         for item in count_result:
             item['color'] = color.get(item['count'])
-        text_result.replace(u"->་", "")
+            item['word'] = self.word_valid(item['word'])
+            if item['word'] in self.flags_last_3:
+                item['is_underline'] = True
+        text_result = text_result.replace(u"->་", "")
         return count_result, text_result
 
 

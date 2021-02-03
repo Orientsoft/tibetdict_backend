@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, BackgroundTasks
 from starlette.status import HTTP_400_BAD_REQUEST
 from typing import List
+import re
 from collections import Counter
 from loguru import logger
 from fastapi_plugins import depends_redis
@@ -154,15 +155,16 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
 
 @router.post('/work/new/result', tags=['work'], name='统计结果--新词发现')
 async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Body(...), limit: int = Body(...),
+                          search: str = Body(None),
                           user: User = Depends(get_current_user_authorizer(required=True)),
                           db: AsyncIOMotorClient = Depends(get_database)):
     # db_self_dict = await get_work_new_word_result(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
-    import time
-    start = time.time()
     query_obj = {'work_history_id': {'$in': ids}, 'user_id': user.id}
+    if search is not None:
+        search = re.compile(re.escape(search))
+        query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}}]
     db_self_dict = await get_self_dict_list(db, query_obj, page, limit)
-    count = await count_self_dict_by_query(db,query_obj)
-    print(time.time() - start)
+    count = await count_self_dict_by_query(db, query_obj)
     return {'data': db_self_dict, 'total': count}
 
 
