@@ -18,9 +18,9 @@ from common.unit_word import UnitStat
 
 from crud.file import get_file, update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
-    get_work_history, get_work_history_result_sum, update_work_history
+    get_work_history, get_work_history_result_sum, update_work_history, delete_work_history
 from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result, \
-    get_self_dict_list
+    get_self_dict_list, delete_self_dict
 from crud.word_dict import get_dict
 from common.cache import set_cache, get_cache, word_pool_check_cache
 
@@ -106,6 +106,18 @@ async def history_stat(work_type: WorkTypeEnum, user_id: str = None, file_name: 
     data = await get_work_history_list(db, query_obj, page, limit)
     total = await count_work_history_by_query(db, query_obj)
     return {'data': data, 'total': total}
+
+
+@router.delete('/work', tags=['work'], name='删除历史记录')
+async def delete_work(ids: List[str] = Body(..., embed=True),
+                      user: User = Depends(get_current_user_authorizer(required=True)),
+                      db: AsyncIOMotorClient = Depends(get_database)):
+    # 删除self_dict
+    await delete_self_dict(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
+    # 删除work_history
+    await delete_work_history(db, {'id': {'$in': ids}, 'user_id': user.id})
+    # todo 删除对象存储中内容
+    return {'msg': '2002'}
 
 
 @router.post('/work/result', tags=['work'], name='统计结果--词频统计')

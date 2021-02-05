@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.status import HTTP_400_BAD_REQUEST
-from model.user import UserCreateModel, User, TokenResponse, UserListResponse
+from model.user import UserCreateModel, User, TokenResponse, UserListResponse, UserBaseModel
 from common.jwt import get_current_user_authorizer, create_access_token
 from common.mongodb import AsyncIOMotorClient, get_database
 from crud.user import create_user, get_user, get_user_list_by_query_with_page_and_limit, count_user_by_query, \
@@ -55,6 +55,15 @@ async def login(user: OAuth2PasswordRequestForm = Depends(), db: AsyncIOMotorCli
     token = create_access_token(data={"id": dbuser.id})
     # swaggerui 要求返回此格式
     return TokenResponse(access_token=token)
+
+
+@router.get('/user/me', tags=['user'], name='我的信息')
+async def user_me(
+        user: User = Depends(get_current_user_authorizer(required=True)),
+        db: AsyncIOMotorClient = Depends(get_database)
+):
+    dbuser = await get_user(conn=db, query={'id': user.id})
+    return {'username': dbuser.username, 'role': dbuser.role}
 
 
 @router.get('/user_list', tags=['admin'], response_model=UserListResponse, name='用户列表获取')
