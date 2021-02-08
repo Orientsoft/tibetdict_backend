@@ -1,6 +1,6 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional, List
-from model.self_dict import SelfDictInDB, SelfDictCreateModel
+from model.self_dict import SelfDictInDB, SelfDictCreateModel, SelfDictWithFilename
 from config import database_name, self_dict_collection_name, work_history_collection_name
 
 
@@ -23,6 +23,29 @@ async def get_self_dict_list(conn: AsyncIOMotorClient, query: Optional[dict], pa
                              limit: int):
     result = conn[database_name][self_dict_collection_name].find(query).skip((page - 1) * limit).limit(limit)
     return [SelfDictInDB(**x) async for x in result]
+
+
+async def get_self_dict_list_by_query_with_filename(conn: AsyncIOMotorClient, query: Optional[dict], page: int,
+                                                    limit: int):
+    result = conn[database_name][self_dict_collection_name].aggregate([
+        {'$match': query},
+        {'$lookup': {'from': work_history_collection_name, 'localField': 'work_history_id', 'foreignField': 'id',
+                     'as': 'work_history'}},
+        {'$unwind': '$work_history'},
+        {'$skip': (page - 1) * limit},
+        {'$limit': limit}
+    ])
+    return [SelfDictWithFilename(
+        id=x['id'],
+        word=x['word'],
+        user_id=x['user_id'],
+        nature=x['nature'],
+        context=x['context'],
+        is_check=x['is_check'],
+        createdAt=x['createdAt'],
+        updatedAt=x['updatedAt'],
+        file_name=x['work_history']['file_name']
+    ) async for x in result]
 
 
 async def count_self_dict_by_query(conn: AsyncIOMotorClient, query: Optional[dict]):

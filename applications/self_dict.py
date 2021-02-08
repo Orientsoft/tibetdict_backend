@@ -8,7 +8,7 @@ from common.mongodb import AsyncIOMotorClient, get_database
 
 from model.self_dict import SelfDictCreateModel, SelfDictUpdateModel
 from crud.self_dict import create_self_dict, get_self_dict, get_self_dict_list, count_self_dict_by_query, \
-    update_self_dict, delete_self_dict
+    update_self_dict, delete_self_dict, get_self_dict_list_by_query_with_filename
 
 router = APIRouter()
 
@@ -48,7 +48,7 @@ async def get_dict(user_id: str = None, search: str = None, page: int = 1, limit
                             {'context': {'$regex': search}}]
     if is_check is not None:
         query_obj['is_check'] = is_check
-    data = await get_self_dict_list(db, query_obj, page, limit)
+    data = await get_self_dict_list_by_query_with_filename(db, query_obj, page, limit)
     total = await count_self_dict_by_query(db, query_obj)
     return {'data': data, 'total': total}
 

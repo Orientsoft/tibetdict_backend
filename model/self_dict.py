@@ -27,3 +27,15 @@ class SelfDictInDB(SelfDictBaseModel):
     id: str
     createdAt: str
     updatedAt: str
+
+
+class SelfDictWithFilename(BaseModel):
+    id: str
+    word: str
+    user_id: str
+    nature: str = None
+    context: str = None
+    is_check: bool = False
+    createdAt: str
+    updatedAt: str
+    file_name: str
