@@ -16,7 +16,7 @@ from common.mongodb import AsyncIOMotorClient, get_database
 from common.upload import MinioUploadPrivate
 from common.unit_word import UnitStat
 
-from crud.file import get_file, update_file
+from crud.file import get_file, update_file, batch_update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
     get_work_history, get_work_history_result_sum, update_work_history, delete_work_history
 from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result, \
@@ -112,11 +112,14 @@ async def history_stat(work_type: WorkTypeEnum, user_id: str = None, file_name: 
 async def delete_work(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
+    db_work = await get_work_history_list(db, {'id': {'$in': ids}}, 1, 20)
+    file_id = [r.file_id for r in db_work]
     # 删除self_dict
     await delete_self_dict(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
     # 删除work_history
     await delete_work_history(db, {'id': {'$in': ids}, 'user_id': user.id})
     # todo 删除对象存储中内容
+    await batch_update_file(db, {'id': {'$in': file_id}}, {'$set': {'last_new': None, 'last_stat': None}})
     return {'msg': '2002'}
 
 
@@ -147,8 +150,8 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
                       db: AsyncIOMotorClient = Depends(get_database)):
     # 不过滤result
     db_his = await get_work_history(db, {'id': id}, show_result=True)
-    if db_his.p_status != 1 or not db_his.p_result:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '文档无法审阅')
+    # if db_his.p_status != 1 or not db_his.p_result:
+    #     raise HTTPException(HTTP_400_BAD_REQUEST, '文档无法审阅')
     if db_his.user_id != user.id or 0 not in user.role:
         raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
     m = MinioUploadPrivate()

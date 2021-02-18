@@ -30,6 +30,11 @@ async def update_file(conn: AsyncIOMotorClient, query: Optional[dict], item: dic
     return True
 
 
+async def batch_update_file(conn: AsyncIOMotorClient, query: Optional[dict], item: dict):
+    conn[database_name][file_collection_name].update_many(query, item)
+    return True
+
+
 async def delete_file(conn: AsyncIOMotorClient, query: Optional[dict]):
     conn[database_name][file_collection_name].delete_many(query)
     return True
