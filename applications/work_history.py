@@ -81,8 +81,8 @@ async def add_work_history(background_tasks: BackgroundTasks, file_ids: List[str
         elif data.work_type == WorkTypeEnum.new:
             await update_file(db, {'id': data.file_id}, {'$set': {'last_new': now}})
         # 添加后端任务
-        background_tasks.add_task(back_calc_parsed_result, db, data.id)
-        background_tasks.add_task(back_calc_origin_result, db, data.id, word_pool)
+        background_tasks.add_task(back_calc_parsed_result, db, data.id, is_async=True)
+        background_tasks.add_task(back_calc_origin_result, db, data.id, word_pool, is_async=True)
     return {'data': resp_data}
 
 
