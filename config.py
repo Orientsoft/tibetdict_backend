@@ -33,3 +33,8 @@ REDIS_HOST = '127.0.0.1'
 REDIS_PORT = 6379
 REDIS_PASSWD = None
 WORD_POOL_KEY = 'word_pool_check'
+
+# celery config
+BROKER_URL = 'redis://127.0.0.1:6379/0'
+RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+ENABLE_UTC = True
