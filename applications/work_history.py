@@ -119,6 +119,23 @@ async def delete_work(ids: List[str] = Body(..., embed=True),
     return {'msg': '2002'}
 
 
+@router.post('/work/status', tags=['work'], name='计算结果')
+async def work_status(ids: List[str] = Body(..., embed=True),
+                      user: User = Depends(get_current_user_authorizer(required=True)),
+                      db: AsyncIOMotorClient = Depends(get_database)):
+    db_his_data = await get_work_history_list(db, {'id': {'$in': ids}, 'user_id': user.id}, 1, 0)
+    result = {
+        'o_status': True,
+        'p_status': True
+    }
+    for item in db_his_data:
+        if item.p_status == 0:
+            result['p_status'] = False
+        if item.o_status == 0:
+            result['o_status'] = False
+    return result
+
+
 @router.post('/work/result', tags=['work'], name='统计结果--词频统计')
 async def work_result(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
