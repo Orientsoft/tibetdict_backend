@@ -123,7 +123,7 @@ async def delete_work(ids: List[str] = Body(..., embed=True),
 async def work_status(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
-    db_his_data = await get_work_history_list(db, {'id': {'$in': ids}, 'user_id': user.id}, 1, 0)
+    db_his_data = await get_work_history_list(db, {'id': {'$in': ids}, 'user_id': user.id}, 1, len(ids))
     result = {
         'o_status': True,
         'p_status': True
