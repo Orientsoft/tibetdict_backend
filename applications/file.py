@@ -98,7 +98,7 @@ async def upload_file(file: UploadFile = File(...), user: User = Depends(get_cur
 
 
 @router.get('/my/file', tags=['file'], name='我的文件')
-async def get_my_file(user_id: str = None, search: str = None, is_check: bool = None, page: int = 1, limit: int = 20,
+async def get_my_file(user_id: str = None, search: str = None, is_check: bool = None,
                       user: User = Depends(get_current_user_authorizer()),
                       db: AsyncIOMotorClient = Depends(get_database)):
     if 0 in user.role:
@@ -110,7 +110,7 @@ async def get_my_file(user_id: str = None, search: str = None, is_check: bool = 
         query_obj['file_name'] = {'$regex': search}
     if is_check is not None:
         query_obj['is_check'] = is_check
-    data = await get_file_list(db, query_obj, page=page, limit=limit)
+    data = await get_file_list(db, query_obj)
     count = await count_file_by_query(db, query_obj)
     return {
         'data': data,

@@ -14,9 +14,8 @@ async def create_file(conn: AsyncIOMotorClient, data: FileCreateModel) -> str:
     return data.id
 
 
-async def get_file_list(conn: AsyncIOMotorClient, query: Optional[dict], page: int, limit: int):
-    result = conn[database_name][file_collection_name].find(query).skip((page - 1) * limit).limit(
-        limit)
+async def get_file_list(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = conn[database_name][file_collection_name].find(query)
     return [FileInDB(**x) async for x in result]
 
 
