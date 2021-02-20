@@ -5,6 +5,8 @@ from config import database_name, word_stat_dict_collection_name, work_history_c
 from collections import Counter
 from common.upload import MinioUploadPrivate
 from loguru import logger
+from config import MONGODB_URL, database_name
+import pymongo
 import uuid
 import traceback
 
@@ -19,6 +21,7 @@ class WordCount:
         self.word_stat_in_content = None
         self.color_total = color_total
         # self.time = time.time()
+        self.db = pymongo.MongoClient(MONGODB_URL)[database_name]
 
     async def get_content(self, _id):
         # start_time = time.time()

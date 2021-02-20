@@ -22,7 +22,7 @@ async def add_dict(
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     db_w = await get_word_stat_dict(db, {'word': word, 'nature': nature, 'type': type})
     if db_w:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '内容重复')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40013')
     await create_word_stat_dict(db, WordStatDictCreateModel(
         word=word,
         nature=nature,
@@ -34,13 +34,13 @@ async def add_dict(
 
 
 @router.get('/word/stat/dict', tags=['admin'], name='管理员获取词库')
-async def get_dict(type: DictTypeEnum, search: str = None, page: int = 1, limit: int = 20, is_exclude: bool = None,
+async def get_dict(_type: DictTypeEnum, search: str = None, page: int = 1, limit: int = 20, is_exclude: bool = None,
                    user: User = Depends(get_current_user_authorizer(required=True)),
                    db: AsyncIOMotorClient = Depends(get_database)
                    ):
     if 0 not in user.role:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
-    query_obj = {'type': type}
+    query_obj = {'type': _type}
     if search is not None:
         query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}}]
     if is_exclude is not None:
@@ -70,7 +70,7 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     attr = file.filename.rsplit('.')[-1]
     if attr not in ['txt']:
-        raise HTTPException(status_code=400, detail='100141')
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40014')
     content = file.file.read().decode('utf-8')
     # content = content.replace(u'༌', u'་')
     need_insert = []

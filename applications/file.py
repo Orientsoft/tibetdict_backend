@@ -124,9 +124,9 @@ async def get_file_content(file_id: str,
                            db: AsyncIOMotorClient = Depends(get_database)):
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '文件不存在')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
     if db_file.user_id != user.id and 0 not in user.role:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     m = MinioUploadPrivate()
     content = m.get_object(db_file.parsed)
     return {'data': content.decode('utf-8'), 'file_name': db_file.file_name}
@@ -139,9 +139,9 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
     # 1.内容更新到minio，2.更新file的p_hash
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '文件不存在')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
     if db_file.user_id != user.id and 0 not in user.role:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
     if content is not None:
         m = MinioUploadPrivate()
@@ -161,13 +161,13 @@ async def del_file(file_id: str,
                    db: AsyncIOMotorClient = Depends(get_database)):
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '文件不存在')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
     if db_file.user_id != user.id and 0 not in user.role:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     # 文件不能在work_history中出现
     use_count = await count_work_history_by_query(db, {'file_id': file_id})
     if use_count > 0:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '此文件不可删除')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40012')
     m = MinioUploadPrivate()
     m.remove(db_file.parsed)
     m.remove(db_file.origin)

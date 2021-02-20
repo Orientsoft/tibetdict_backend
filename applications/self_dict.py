@@ -21,7 +21,7 @@ async def add_dict(
 ):
     db_w = await get_self_dict(db, {'word': word, 'nature': nature, 'user_id': user.id})
     if db_w:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '内容重复')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40013')
     await create_self_dict(db, SelfDictCreateModel(
         word=word,
         nature=nature,

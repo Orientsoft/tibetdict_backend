@@ -109,3 +109,10 @@ async def get_reset_password(
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40002')
     await update_password(conn=db, query={'id': user_id}, password=new_pass)
     return {'msg': '2001'}
+
+
+@router.get('/language/code', tags=['user'], name='i18n码表获取')
+async def get_language_code():
+    from respcode import data
+
+    return {'data': data}

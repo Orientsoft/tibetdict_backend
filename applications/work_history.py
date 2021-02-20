@@ -36,7 +36,7 @@ async def add_work_history(file_ids: List[str] = Body(...),
                            user: User = Depends(get_current_user_authorizer(required=True)),
                            db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)):
     if len(file_ids) > max_limit:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '超过限制')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40016')
     resp_data = []
     for file_id in file_ids:
         db_file = await get_file(db, {'id': file_id, 'user_id': user.id})
@@ -147,7 +147,7 @@ async def work_result(ids: List[str] = Body(..., embed=True),
         temp_obj[r['word']] = r['total']
     returnArr = []
     if not temp_obj:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '暂无结果')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40015')
     # 计算颜色
     w = WordCount(conn=db)
     color_result = w.colouration(temp_obj)  # {829:0,100:1}
@@ -166,7 +166,7 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
     # if db_his.p_status != 1 or not db_his.p_result:
     #     raise HTTPException(HTTP_400_BAD_REQUEST, '文档无法审阅')
     if db_his.user_id != user.id or 0 not in user.role:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '权限不足')
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     m = MinioUploadPrivate()
     o_content = m.get_object(f'result/origin/{db_his.user_id}/{db_his.id}.txt')
     p_content = m.get_object(f'result/parsed/{db_his.user_id}/{db_his.id}.txt')
