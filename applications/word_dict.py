@@ -34,13 +34,13 @@ async def add_dict(
 
 
 @router.get('/word/stat/dict', tags=['admin'], name='管理员获取词库')
-async def get_dict(_type: DictTypeEnum, search: str = None, page: int = 1, limit: int = 20, is_exclude: bool = None,
+async def get_dict(type: DictTypeEnum, search: str = None, page: int = 1, limit: int = 20, is_exclude: bool = None,
                    user: User = Depends(get_current_user_authorizer(required=True)),
                    db: AsyncIOMotorClient = Depends(get_database)
                    ):
     if 0 not in user.role:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
-    query_obj = {'type': _type}
+    query_obj = {'type': type}
     if search is not None:
         query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}}]
     if is_exclude is not None:
