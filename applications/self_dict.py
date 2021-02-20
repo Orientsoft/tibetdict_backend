@@ -9,6 +9,7 @@ from common.mongodb import AsyncIOMotorClient, get_database
 from model.self_dict import SelfDictCreateModel, SelfDictUpdateModel
 from crud.self_dict import create_self_dict, get_self_dict, get_self_dict_list, count_self_dict_by_query, \
     update_self_dict, delete_self_dict, get_self_dict_list_by_query_with_filename
+import re
 
 router = APIRouter()
 
@@ -44,6 +45,7 @@ async def get_dict(user_id: str = None, search: str = None, page: int = 1, limit
         u_id = user.id
     query_obj = {'user_id': u_id}
     if search is not None:
+        search = re.compile(re.escape(search))
         query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}},
                             {'context': {'$regex': search}}]
     if is_check is not None:

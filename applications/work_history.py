@@ -94,6 +94,7 @@ async def history_stat(work_type: WorkTypeEnum, user_id: str = None, file_name: 
         u_id = user.id
     query_obj = {'user_id': u_id, 'work_type': work_type}
     if file_name is not None:
+        file_name = re.compile(re.escape(file_name))
         query_obj['file_name'] = {'$regex': file_name}
     if p_status is not None:
         query_obj['p_status'] = p_status
