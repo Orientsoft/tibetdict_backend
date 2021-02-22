@@ -79,12 +79,14 @@ class MinioUploadPrivate:
         try:
             objects = mc.list_objects_v2(self.bucket, prefix=path, recursive=recursive)
             for obj in objects:
+                object_name = obj.object_name
                 tmp_path = obj.object_name.replace(path, '')
                 content.append({
                     'size': obj.size,
                     'is_dir': obj.is_dir,
                     'last_modified': obj.last_modified,
                     'file_name': tmp_path.rsplit('/', 1)[-1],
+                    'object_name':object_name,
                     'path': tmp_path.rsplit('/', 1)[0]
                 })
         except Exception as e:

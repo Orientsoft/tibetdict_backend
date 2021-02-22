@@ -216,11 +216,13 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     if '.' in subpath:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40014')
 
+    # file_name = '{}_{}'.format('_'.join(subpath.split('/')[2:]), file.filename) if subpath.split('/')[
+    #                                                                                2:] else file.filename
     data = FileCreateModel(
         user_id=user.id,
         file_name=file.filename,
         is_check=False,
-        tags=subpath.split('/')
+        tags=subpath.split('/')[0:2:]  # 前两级目录作为分类
     )
     '''
     1.txt 本地存储，
@@ -261,7 +263,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         os.remove(origin_temp_file_name)
 
     m = MinioUploadPrivate()
-    if prefix_dir is not None:
+    if prefix_dir:
         complete_path = f'{prefix_dir}/{path}'
     else:
         complete_path = path
@@ -286,10 +288,27 @@ async def get_my_content(user: User = Depends(get_current_user_authorizer())):
 
 
 @router.post('/content/file', tags=['file'], name='目录中内容')
-async def get_content_file(path: str = Body(None, embed=True), user: User = Depends(get_current_user_authorizer())):
+async def get_content_file(path: str = Body(None, embed=True), search: str = Body(None), is_check: bool = Body(None),
+                           user: User = Depends(get_current_user_authorizer()),
+                           db: AsyncIOMotorClient = Depends(get_database)):
     m = MinioUploadPrivate()
     if path is not None:
         comp_path = f'parsed/{user.id}/{path}/'
     else:
         comp_path = f'parsed/{user.id}/'
-    return m.list_content(comp_path, False)
+    result = m.list_content(comp_path, False)
+    condition_file = []
+    for item in result:
+        condition_file.append(item['object_name'])
+    query_obj = {'user_id': user.id, 'parsed': {'$in': condition_file}}
+    if search is not None:
+        query_obj['file_name'] = {'$regex': search}
+    if is_check is not None:
+        query_obj['is_check'] = is_check
+    print(query_obj)
+    data = await get_file_list(db, query_obj)
+    count = await count_file_by_query(db, query_obj)
+    return {
+        'data': data,
+        'count': count
+    }
