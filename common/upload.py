@@ -98,7 +98,7 @@ class MinioUploadPrivate:
         result = self.list_content(path,True)
         tree_array = []
         for r in result:
-            if r['is_dir']:
+            if '.' not in r['path']:
                 path_item = r['path'].split('/')
                 tree_array.append(path_item)
         t = MyTree()
