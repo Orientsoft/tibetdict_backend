@@ -138,6 +138,7 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
                      book_name: str = Body(None),
                      author: str = Body(None),
                      version: str = Body(None),
+                     tags: List = Body(None),
                      user: User = Depends(get_current_user_authorizer()),
                      db: AsyncIOMotorClient = Depends(get_database)):
     # 1.内容更新到minio，2.更新file的p_hash
@@ -161,6 +162,8 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         update_obj['author'] = author
     if version:
         update_obj['version'] = version
+    if tags:
+        update_obj['tags'] = tags
     await update_file(db, {'id': file_id}, {'$set': update_obj})
     return {'msg': '2002'}
 
