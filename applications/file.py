@@ -225,7 +225,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         user_id=user.id,
         file_name=file.filename,
         is_check=False,
-        tags=subpath.split('/')[0:2:] or []  # 前两级目录作为分类
+        tags=subpath.split('/')[0:2:] if subpath else []  # 前两级目录作为分类
     )
     '''
     1.txt 本地存储，
@@ -309,7 +309,6 @@ async def get_content_file(path: str = Body(None, embed=True), search: str = Bod
         query_obj['file_name'] = {'$regex': search}
     if is_check is not None:
         query_obj['is_check'] = is_check
-    print(query_obj)
     data = await get_file_list(db, query_obj)
     count = await count_file_by_query(db, query_obj)
     return {
