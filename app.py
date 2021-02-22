@@ -99,6 +99,6 @@ if __name__ == '__main__':
         app="app:app",
         host=HOST,
         port=PORT,
-        reload=True,
+        reload=False,
         workers=4
     )
