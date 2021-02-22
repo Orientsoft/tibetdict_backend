@@ -1,5 +1,6 @@
 from pydantic import BaseModel, validator
 from model.common import IDModel, UpdatedAtModel, CreatedAtModel
+from typing import List
 
 
 class FileBaseModel(BaseModel):
@@ -12,6 +13,10 @@ class FileBaseModel(BaseModel):
     parsed: str = None
     o_hash: str = None
     p_hash: str = None
+    book_name: str = None
+    author: str = None
+    version: str = None
+    tags: List = None
 
 
 class FileCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, FileBaseModel):
