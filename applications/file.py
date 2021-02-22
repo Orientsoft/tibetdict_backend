@@ -296,7 +296,7 @@ async def get_content_file(path: str = Body(None, embed=True), search: str = Bod
                            user: User = Depends(get_current_user_authorizer()),
                            db: AsyncIOMotorClient = Depends(get_database)):
     m = MinioUploadPrivate()
-    if path is not None:
+    if path:
         comp_path = f'parsed/{user.id}/{path}/'
     else:
         comp_path = f'parsed/{user.id}/'
