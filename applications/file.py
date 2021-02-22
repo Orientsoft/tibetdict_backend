@@ -138,6 +138,7 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
                      book_name: str = Body(None),
                      author: str = Body(None),
                      version: str = Body(None),
+                     tags: List = Body(None),
                      user: User = Depends(get_current_user_authorizer()),
                      db: AsyncIOMotorClient = Depends(get_database)):
     # 1.内容更新到minio，2.更新file的p_hash
@@ -161,6 +162,8 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         update_obj['author'] = author
     if version:
         update_obj['version'] = version
+    if tags:
+        update_obj['tags'] = tags
     await update_file(db, {'id': file_id}, {'$set': update_obj})
     return {'msg': '2002'}
 
@@ -222,7 +225,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         user_id=user.id,
         file_name=file.filename,
         is_check=False,
-        tags=subpath.split('/')[0:2:]  # 前两级目录作为分类
+        tags=subpath.split('/')[0:2:] if subpath else []  # 前两级目录作为分类
     )
     '''
     1.txt 本地存储，
@@ -293,7 +296,7 @@ async def get_content_file(path: str = Body(None, embed=True), search: str = Bod
                            user: User = Depends(get_current_user_authorizer()),
                            db: AsyncIOMotorClient = Depends(get_database)):
     m = MinioUploadPrivate()
-    if path is not None:
+    if path:
         comp_path = f'parsed/{user.id}/{path}/'
     else:
         comp_path = f'parsed/{user.id}/'
@@ -306,7 +309,6 @@ async def get_content_file(path: str = Body(None, embed=True), search: str = Bod
         query_obj['file_name'] = {'$regex': search}
     if is_check is not None:
         query_obj['is_check'] = is_check
-    print(query_obj)
     data = await get_file_list(db, query_obj)
     count = await count_file_by_query(db, query_obj)
     return {
