@@ -14,7 +14,6 @@ from model.self_dict import SelfDictCreateModel
 from common.jwt import get_current_user_authorizer
 from common.mongodb import AsyncIOMotorClient, get_database
 from common.upload import MinioUploadPrivate
-from common.unit_word import UnitStat
 
 from crud.file import get_file, update_file, batch_update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
@@ -22,7 +21,6 @@ from crud.work_history import create_work_history, get_work_history_list, count_
 from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result, \
     get_self_dict_list, delete_self_dict
 from crud.word_dict import get_dict
-from common.cache import set_cache, get_cache, word_pool_check_cache
 from common.worker import celery_app
 
 from common.word_count import WordCount

@@ -277,3 +277,19 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     data.p_hash = data.o_hash
     await create_file(db, data)
     return {'id': data.id}
+
+
+@router.get('/my/tree', tags=['file'], name='我的目录')
+async def get_my_content(user: User = Depends(get_current_user_authorizer())):
+    m = MinioUploadPrivate()
+    return m.list_tree(f'parsed/{user.id}/')
+
+
+@router.post('/content/file', tags=['file'], name='目录中内容')
+async def get_content_file(path: str = Body(None, embed=True), user: User = Depends(get_current_user_authorizer())):
+    m = MinioUploadPrivate()
+    if path is not None:
+        comp_path = f'parsed/{user.id}/{path}/'
+    else:
+        comp_path = f'parsed/{user.id}/'
+    return m.list_content(comp_path, False)

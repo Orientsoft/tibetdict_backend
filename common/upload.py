@@ -9,6 +9,33 @@ from loguru import logger
 
 import config
 
+
+class MyTree:
+    def __init__(self):
+        self.tree = {}
+
+    # onepoint 是 list
+    def append_Point_to_tree(self, onepoint):
+        nowPositon = self.tree
+        index = 0
+        while index < len(onepoint):
+
+            if nowPositon.__contains__(onepoint[index]):
+                nowPositon = nowPositon[onepoint[index]]
+                index += 1
+
+            else:
+                # 创建新节点
+                nowPositon[onepoint[index]] = {}
+        return self.tree
+
+    # 把【 【路径1 a,b,c,d】 ，【路径2】 】
+    # 多条路径一次性插入到树中
+    def insert_list_to_tree(self, pointlist):
+        for onepoint in pointlist:
+            self.append_Point_to_tree(onepoint)
+
+
 mc = Minio(config.MINIO_URL,
            access_key=config.MINIO_ACCESS,
            secret_key=config.MINIO_SECRET,
@@ -46,3 +73,31 @@ class MinioUploadPrivate:
 
     def remove(self, full_path: str):
         mc.remove_object(self.bucket, full_path)
+
+    def list_content(self, path: str, recursive: bool = False):
+        content = []
+        try:
+            objects = mc.list_objects_v2(self.bucket, prefix=path, recursive=recursive)
+            for obj in objects:
+                tmp_path = obj.object_name.replace(path, '')
+                content.append({
+                    'size': obj.size,
+                    'is_dir': obj.is_dir,
+                    'last_modified': obj.last_modified,
+                    'file_name': tmp_path.rsplit('/', 1)[-1],
+                    'path': tmp_path.rsplit('/', 1)[0]
+                })
+        except Exception as e:
+            print(e)
+            pass
+        return content
+
+    def list_tree(self, path: str):
+        result = self.list_content(path,True)
+        tree_array = []
+        for r in result:
+            path_item = r['path'].split('/')
+            tree_array.append(path_item)
+        t = MyTree()
+        t.insert_list_to_tree(tree_array)
+        return t.tree
