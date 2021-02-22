@@ -273,10 +273,11 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     data.parsed = f'parsed/{user.id}/{complete_path}'
     # 上传原始文件
     m.commit(origin_content.encode('utf-8'), data.origin)
-    m.commit(origin_content.encode('utf-8'), data.parsed)
+    parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", origin_content)
+    m.commit(parsed_content.encode('utf-8'), data.parsed)
     # 文件指纹
     data.o_hash = contenttomd5(origin_content.encode('utf-8'))
-    data.p_hash = data.o_hash
+    data.p_hash = contenttomd5(parsed_content.encode('utf-8'))
     await create_file(db, data)
     return {'id': data.id}
 
