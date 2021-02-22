@@ -225,7 +225,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         user_id=user.id,
         file_name=file.filename,
         is_check=False,
-        tags=subpath.split('/')[0:2:]  # 前两级目录作为分类
+        tags=subpath.split('/')[0:2:] or []  # 前两级目录作为分类
     )
     '''
     1.txt 本地存储，
