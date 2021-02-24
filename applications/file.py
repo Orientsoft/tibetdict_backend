@@ -150,6 +150,8 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
     if db_file.user_id != user.id and 0 not in user.role:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
+    if is_check is not None:
+        update_obj['is_check'] = is_check
     if content is not None:
         # es bulk操作
         actions = [
@@ -167,8 +169,21 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         m.commit(content.encode('utf-8'), db_file.parsed)
         new_hash = contenttomd5(content.encode('utf-8'))
         update_obj['p_hash'] = new_hash
-    if is_check is not None:
-        update_obj['is_check'] = is_check
+    # 参数未传content，但是is_check修改为True，需要从minio读取content
+    elif is_check:
+        m = MinioUploadPrivate()
+        content = m.get_object(db_file.parsed)
+        # es bulk操作
+        actions = [
+            {'index': {'_index': ES_INDEX, '_id': file_id}},
+            {'id': file_id, 'content': content.decode('utf-8')}
+        ]
+        result = bulk(index=ES_INDEX, body=actions)
+        if result['errors']:
+            logger.error(str(result))
+            raise HTTPException(HTTP_400_BAD_REQUEST, )
+        else:
+            logger.info(str(result))
     if book_name:
         update_obj['book_name'] = book_name
     if author:
