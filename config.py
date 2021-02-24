@@ -38,3 +38,9 @@ WORD_POOL_KEY = 'word_pool_check'
 BROKER_URL = 'redis://127.0.0.1:6379/0'
 RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
 ENABLE_UTC = True
+
+# es地址
+ES_URL = '192.168.0.20'
+ES_PORT = 9201
+ES_NAME = None
+ES_PASSWD = None
