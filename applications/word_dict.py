@@ -92,6 +92,5 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
             is_exclude=False,
             name=name
         )
-        need_insert.append(data.dict())
-    await batch_create_word_stat_dict(db, need_insert)
+        await create_word_stat_dict(db, data)
     return {'msg': '2001'}
