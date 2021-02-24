@@ -357,15 +357,24 @@ async def get_content_file(path: str = Body(None, embed=True), search: str = Bod
     }
 
 
-@router.get('/search', tags=['file'], name='搜索')
-async def search_file(search: str,
+@router.post('/search', tags=['file'], name='搜索')
+async def search_file(search: str = Body(...), page: int = Body(1), limit: int = Body(20),
                       user: User = Depends(get_current_user_authorizer())):
     from common.search import query_es
-    result = query_es(ES_INDEX, search, 10)
+    start = (page - 1) * limit
+    try:
+        result = query_es(index=ES_INDEX, keyword=search, start=start, size=limit)
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40017')
     returnObj = {
-        'total': 0,
+        'total': result['hits']['total']['value'],
         'data': []
     }
-    for r in result:
-        pass
+    print(result)
+    for r in result['hits']['hits']:
+        returnObj['data'].append({
+            'id': r['_source']['id'],
+            'sentence': r['highlight']['content']
+        })
     return returnObj
