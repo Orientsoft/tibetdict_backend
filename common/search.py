@@ -4,7 +4,7 @@ from config import ES_NAME, ES_PASSWD, ES_PORT, ES_URL
 #
 # es = Elasticsearch(['es-cn-0pp0wdtno00026tz5.elasticsearch.aliyuncs.com'], http_auth=('elastic', 'N+8atre&lt'),
 #                    port=9200)
-es = Elasticsearch([ES_URL], port=ES_PORT)
+es = Elasticsearch([ES_URL], http_auth=(ES_NAME, ES_PASSWD), port=ES_PORT)
 
 
 def query_es(keyword: str, num: int = 10):

@@ -42,5 +42,5 @@ ENABLE_UTC = True
 # es地址
 ES_URL = '192.168.0.20'
 ES_PORT = 9201
-ES_NAME = None
-ES_PASSWD = None
+ES_NAME = ''
+ES_PASSWD = ''
