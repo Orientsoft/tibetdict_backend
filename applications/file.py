@@ -325,3 +325,17 @@ async def get_content_file(path: str = Body(None, embed=True), search: str = Bod
         'data': data,
         'count': count
     }
+
+
+@router.get('/search', tags=['file'], name='搜索')
+async def search_file(search: str,
+                      user: User = Depends(get_current_user_authorizer())):
+    from common.search import query_es
+    result = query_es(ES_INDEX, search, 10)
+    returnObj = {
+        'total': 0,
+        'data': []
+    }
+    for r in result:
+        pass
+    return returnObj
