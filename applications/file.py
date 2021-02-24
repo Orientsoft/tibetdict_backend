@@ -20,7 +20,8 @@ from model.file import FileCreateModel
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5, tokenize_words
 from common.search import bulk
-from config import ES_INDEX
+from config import ES_INDEX, timezone
+from datetime import datetime
 
 router = APIRouter()
 _platform = platform.system().lower()
@@ -156,7 +157,7 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         # es bulk操作
         actions = [
             {'index': {'_index': ES_INDEX, '_id': file_id}},
-            {'id': file_id, 'content': content}
+            {'id': file_id, 'content': content, 'createdAt': datetime.now(tz=timezone).isoformat()}
         ]
         result = bulk(index=ES_INDEX, body=actions)
         if result['errors']:
@@ -176,7 +177,7 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         # es bulk操作
         actions = [
             {'index': {'_index': ES_INDEX, '_id': file_id}},
-            {'id': file_id, 'content': content.decode('utf-8')}
+            {'id': file_id, 'content': content.decode('utf-8'), 'createdAt': datetime.now(tz=timezone).isoformat()}
         ]
         result = bulk(index=ES_INDEX, body=actions)
         if result['errors']:
