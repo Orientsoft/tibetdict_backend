@@ -184,6 +184,17 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
             raise HTTPException(HTTP_400_BAD_REQUEST, )
         else:
             logger.info(str(result))
+    # is_check从True改为False时，es中对应内容应删除
+    elif not is_check:
+        actions = [
+            {'delete': {'_index': ES_INDEX, '_id': file_id}}
+        ]
+        result = bulk(index=ES_INDEX, body=actions)
+        if result['errors']:
+            logger.error(str(result))
+            raise HTTPException(HTTP_400_BAD_REQUEST, )
+        else:
+            logger.info(str(result))
     if book_name:
         update_obj['book_name'] = book_name
     if author:
