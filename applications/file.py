@@ -158,6 +158,7 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         ]
         result = bulk(index=ES_INDEX, body=actions)
         if result['errors']:
+            logger.error(str(result))
             raise HTTPException(HTTP_400_BAD_REQUEST, )
         m = MinioUploadPrivate()
         # 上传文件
