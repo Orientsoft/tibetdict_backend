@@ -19,6 +19,8 @@ from crud.work_history import count_work_history_by_query
 from model.file import FileCreateModel
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5, tokenize_words
+from common.search import bulk
+from config import ES_INDEX
 
 router = APIRouter()
 _platform = platform.system().lower()
@@ -149,6 +151,14 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
     if content is not None:
+        # es bulk操作
+        actions = [
+            {'index': {'_index': ES_INDEX, '_id': file_id}},
+            {'id': file_id, 'content': content}
+        ]
+        result = bulk(index=ES_INDEX, body=actions)
+        if result['errors']:
+            raise HTTPException(HTTP_400_BAD_REQUEST, )
         m = MinioUploadPrivate()
         # 上传文件
         m.commit(content.encode('utf-8'), db_file.parsed)

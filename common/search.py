@@ -22,3 +22,9 @@ def query_es(keyword: str, num: int = 10):
     }
     result = es.search(index="tibetan-corpus-docx", body=query, size=num)
     return result
+
+
+def bulk(index: str, body: list):
+    es.indices.create(index=index, ignore=400)
+    result = es.bulk(body=body, request_timeout=60)
+    return result

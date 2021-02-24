@@ -44,3 +44,4 @@ ES_URL = '192.168.0.20'
 ES_PORT = 9201
 ES_NAME = ''
 ES_PASSWD = ''
+ES_INDEX = 'tibetan-content'
