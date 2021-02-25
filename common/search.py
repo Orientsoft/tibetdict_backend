@@ -15,8 +15,9 @@ def query_es(index: str, keyword: str, start: int = 0, size: int = 10):
             }
         },
         "highlight": {
+            "boundary_max_scan": 40,
             "fields": {
-                "content": {}
+                "content": {"force_source": True, "type": "plain", "fragment_size": 150, "number_of_fragments": 5}
             }
         },
         "_source": ["highlight", "id"],
@@ -30,6 +31,8 @@ def bulk(index: str, body: list):
     es.indices.create(index=index, ignore=400)
     result = es.bulk(body=body, request_timeout=60)
     return result
+
+
 '''
 curl -XPUT "192.168.0.20:9201/tibetan-content/_settings" -H 'Content-Type: application/json' -d' {
     "index" : {
@@ -38,3 +41,6 @@ curl -XPUT "192.168.0.20:9201/tibetan-content/_settings" -H 'Content-Type: appli
 }
 '
 '''
+
+if __name__ == '__main__':
+    print(query_es('tibetan-content-dev', 'གྱ་ནོམ་པ'))
