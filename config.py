@@ -25,7 +25,7 @@ MINIO_URL = 'storage.mooplab.com'
 MINIO_ACCESS = 'moop'
 MINIO_SECRET = 'd2VsY29tZTEK'
 MINIO_SECURE = True
-MINIO_BUCKET = 'tibetdict'
+MINIO_BUCKET = 'tibetdictdev'
 # 藏语的分隔符，编码问题IDE可能显示不出来
 tibetan_full_point = '།'
 # redis 配置
@@ -40,8 +40,8 @@ RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
 ENABLE_UTC = True
 
 # es地址
-ES_URL = '192.168.0.20'
-ES_PORT = 9201
-ES_NAME = ''
-ES_PASSWD = ''
-ES_INDEX = 'tibetan-content'
+ES_URL = 'https://search-tibetandict-oomehhangnyihqg3morcubxkce.cn-northwest-1.es.amazonaws.com.cn'
+ES_PORT = 9200
+ES_NAME = 'elastic'
+ES_PASSWD = 'Welcome@123'
+ES_INDEX = 'tibetan-content-dev'
