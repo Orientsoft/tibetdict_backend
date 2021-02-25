@@ -5,7 +5,7 @@ from model.user import UserCreateModel, User, TokenResponse, UserListResponse, U
 from common.jwt import get_current_user_authorizer, create_access_token
 from common.mongodb import AsyncIOMotorClient, get_database
 from crud.user import create_user, get_user, get_user_list_by_query_with_page_and_limit, count_user_by_query, \
-    update_password
+    update_password, init_index
 from config import API_KEY
 
 router = APIRouter()
@@ -93,6 +93,18 @@ async def get_init_admin(
         role=[0, 1]
     )
     await create_user(conn=db, user=user_model)
+    return {'msg': '2001'}
+
+
+@router.get('/init_sys', tags=['admin'], name='初始化系统')
+async def get_init_sys(
+        key: str,
+        db: AsyncIOMotorClient = Depends(get_database)
+):
+    if key != API_KEY:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40009')
+    # 初始化索引
+    await init_index(db)
     return {'msg': '2001'}
 
 
