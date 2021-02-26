@@ -378,3 +378,18 @@ async def search_file(search: str = Body(...), page: int = Body(1), limit: int =
             'sentence': r['highlight']['content']
         })
     return returnObj
+
+
+@router.get('/file/tokenize', tags=['file'], name='文件自动分词')
+async def tokenize(file_id: str,
+                   user: User = Depends(get_current_user_authorizer()),
+                   db: AsyncIOMotorClient = Depends(get_database)):
+    db_file = await get_file(db, {'id': file_id})
+    if not db_file:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
+    if db_file.user_id != user.id and 0 not in user.role:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    m = MinioUploadPrivate()
+    content = m.get_object(db_file.parsed)
+    parsed_content = tokenize_words(content.decode('utf-8'))
+    return {'data': parsed_content, 'file_name': db_file.file_name}
