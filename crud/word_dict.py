@@ -47,5 +47,5 @@ async def get_dict(conn: AsyncIOMotorClient, query: Optional[dict]):
 
 
 async def remove_word_stat_dict(conn: AsyncIOMotorClient, item: dict):
-    conn[database_name][word_stat_dict_collection_name].remove_many(item)
+    conn[database_name][word_stat_dict_collection_name].delete_many(item)
     return True
