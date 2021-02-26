@@ -82,9 +82,9 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
         name = item.get('name')
         if not word or not nature:
             continue
-        count = await count_word_stat_dict_by_query(db, {'word': word, 'nature': nature, 'type': type})
-        if count:
-            continue
+        # count = await count_word_stat_dict_by_query(db, {'word': word, 'nature': nature, 'type': type})
+        # if count:
+        #     continue
         data = WordStatDictCreateModel(
             word=word,
             nature=nature,
@@ -92,7 +92,11 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
             is_exclude=False,
             name=name
         )
-        await create_word_stat_dict(db, data)
+        try:
+            await create_word_stat_dict(db, data)
+        except Exception as e:
+            print(e)
+            pass
     return {'msg': '2001'}
 
 
