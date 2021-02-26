@@ -44,3 +44,8 @@ async def get_dict(conn: AsyncIOMotorClient, query: Optional[dict]):
                                                                             {'$sort': {'length': -1}}
                                                                             ])
     return [WordPoolModel(**item) async for item in result]
+
+
+async def remove_word_stat_dict(conn: AsyncIOMotorClient, item: dict):
+    conn[database_name][word_stat_dict_collection_name].remove_many(item)
+    return True

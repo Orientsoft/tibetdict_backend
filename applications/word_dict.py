@@ -6,7 +6,7 @@ from common.mongodb import AsyncIOMotorClient, get_database
 
 from model.word_dict import WordStatDictCreateModel, WordStatDictUpdateModel, DictTypeEnum
 from crud.word_dict import create_word_stat_dict, get_word_stat_dict_list, get_word_stat_dict, update_word_stat_dict, \
-    count_word_stat_dict_by_query, batch_create_word_stat_dict
+    count_word_stat_dict_by_query, batch_create_word_stat_dict, remove_word_stat_dict
 
 router = APIRouter()
 
@@ -93,4 +93,15 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
             name=name
         )
         await create_word_stat_dict(db, data)
+    return {'msg': '2001'}
+
+
+@router.delete('/word/stat/dict', tags=['admin'], name='词库清空')
+async def get_dict(type: DictTypeEnum,
+                   user: User = Depends(get_current_user_authorizer(required=True)),
+                   db: AsyncIOMotorClient = Depends(get_database)
+                   ):
+    if 0 not in user.role:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    await remove_word_stat_dict(db, {'type': type})
     return {'msg': '2001'}

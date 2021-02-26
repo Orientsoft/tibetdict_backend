@@ -18,7 +18,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def contenttomd5(origin:bytes):
+def contenttomd5(origin: bytes):
     md5 = hashlib.md5()
     md5.update(origin)
     return md5.hexdigest()
@@ -29,6 +29,7 @@ def tokenize_words(content: str):
     try:
         t = Text(content)
         a = t.tokenize_words_raw_lines
+        a = a.replace('_', '')
     except:
         pass
     finally:
