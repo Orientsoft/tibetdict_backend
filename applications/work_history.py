@@ -122,6 +122,8 @@ async def delete_work(ids: List[str] = Body(..., embed=True),
 async def work_status(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
+    if len(ids) == 0:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40015')
     db_his_data = await get_work_history_list(db, {'id': {'$in': ids}, 'user_id': user.id}, 1, len(ids))
     result = {
         'status': True
