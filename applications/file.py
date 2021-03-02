@@ -314,6 +314,10 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     # 原始文件
     data.origin = f'origin/{user.id}/{complete_path}'
     data.parsed = f'parsed/{user.id}/{complete_path}'
+    # 查重
+    result = await get_file(conn=db, query={'origin': data.origin})
+    if result:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='400013')
     # 上传原始文件
     m.commit(origin_content.encode('utf-8'), data.origin)
     parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", origin_content)
