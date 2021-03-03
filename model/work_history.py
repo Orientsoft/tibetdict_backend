@@ -15,9 +15,9 @@ class WorkHistoryBaseModel(BaseModel):
     file_id: str
     file_name: str
     origin: str
-    parsed: str
+    parsed: str = None
     o_hash: str
-    p_hash: str
+    p_hash: str = None
     work_type: WorkTypeEnum
     p_status: int = Field(None, ge=0, le=2)
     o_status: int = Field(None, ge=0, le=2)

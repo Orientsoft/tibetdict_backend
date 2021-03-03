@@ -55,9 +55,9 @@ async def batch_update_work_history(conn: AsyncIOMotorClient, query: Optional[di
 async def get_work_history_result_sum(conn: AsyncIOMotorClient, query: Optional[dict]):
     result = conn[database_name][work_history_collection_name].aggregate([
         {'$match': query},
-        {'$unwind': '$p_result'},
-        {'$group': {'_id': {'word': '$p_result.word', 'nature': '$p_result.nature'},
-                    'total': {'$sum': '$p_result.count'}}},
+        {'$unwind': '$o_result'},
+        {'$group': {'_id': {'word': '$o_result.word', 'nature': '$o_result.nature'},
+                    'total': {'$sum': '$o_result.count'}}},
         {'$sort': {'total': -1}}
     ])
     return [{

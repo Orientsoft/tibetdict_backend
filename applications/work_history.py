@@ -53,9 +53,9 @@ async def add_work_history(file_ids: List[str] = Body(...),
             file_id=file_id,
             file_name=db_file.file_name,
             origin=db_file.origin,
-            parsed=db_file.parsed,
+            parsed=None,
             o_hash=db_file.o_hash,
-            p_hash=db_file.p_hash,
+            p_hash=None,
             work_type=work_type,
             p_status=0,  # 0：统计中，1：统计成功，2：统计失败
             o_status=0  # 0：统计中，1：统计成功，2：统计失败
@@ -73,9 +73,7 @@ async def add_work_history(file_ids: List[str] = Body(...),
         elif data.work_type == WorkTypeEnum.new:
             await update_file(db, {'id': data.file_id}, {'$set': {'last_new': now}})
         # 添加后端任务
-        # celery_app.send_task('worker:origin_calc', args=[data.id], queue='tibetan',
-        #                      routing_key='tibetan')
-        celery_app.send_task('worker:parsed_calc', args=[data.id], queue='tibetan',
+        celery_app.send_task('worker:origin_calc', args=[data.id], queue='tibetan',
                              routing_key='tibetan')
     return {'data': resp_data}
 
@@ -129,7 +127,7 @@ async def work_status(ids: List[str] = Body(..., embed=True),
         'status': True
     }
     for item in db_his_data:
-        if item.p_status == 0:
+        if item.o_status == 0:
             result['status'] = False
     return result
 
@@ -166,15 +164,12 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
     if db_his.user_id != user.id or 0 not in user.role:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     m = MinioUploadPrivate()
-    # o_content = m.get_object(f'result/origin/{db_his.user_id}/{db_his.id}.txt')
-    p_content = m.get_object(f'result/parsed/{db_his.user_id}/{db_his.id}.txt')
+    content = m.get_object(f'result/origin/{db_his.user_id}/{db_his.id}.txt')
     returnObj = {
         'id': db_his.id,
         'file_name': db_his.file_name,
-        'content': p_content.decode('utf-8'),
-        # 'o_content': o_content.decode('utf-8'),
-        'result': db_his.p_result,
-        # 'o_result': db_his.o_result
+        'content': content.decode('utf-8'),
+        'result': db_his.o_result,
     }
     return returnObj
 

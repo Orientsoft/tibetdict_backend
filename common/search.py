@@ -11,7 +11,7 @@ def query_es(index: str, keyword: str, start: int = 0, size: int = 10):
         "sort": [{"createdAt": "desc"}],
         "query": {
             "match_phrase": {
-                "content": keyword
+                "content": keyword,
             }
         },
         "highlight": {
@@ -22,6 +22,26 @@ def query_es(index: str, keyword: str, start: int = 0, size: int = 10):
         },
         "_source": ["highlight", "id"],
 
+    }
+    result = es.search(index=index, body=query)
+    return result
+
+
+def query_es_file_content(index: str, keyword: str, file_id: str):
+    query = {
+        "sort": [{"createdAt": "desc"}],
+        "query": {
+            "match_phrase": {
+                "content": keyword,
+            }
+        },
+        "highlight": {
+            "boundary_max_scan": 40,
+            "fields": {
+                "content": {"force_source": True, "type": "plain", "fragment_size": 150, "number_of_fragments": 5}
+            }
+        },
+        "_source": ["highlight", "id"],
     }
     result = es.search(index=index, body=query)
     return result
