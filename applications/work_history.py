@@ -23,7 +23,7 @@ from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get
 from crud.word_dict import get_dict
 from common.worker import celery_app
 
-from common.word_count import WordCount
+from common.utils import colouration
 
 router = APIRouter()
 
@@ -145,8 +145,7 @@ async def work_result(ids: List[str] = Body(..., embed=True),
     if not temp_obj:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40015')
     # 计算颜色
-    w = WordCount(conn=db)
-    color_result = w.colouration(temp_obj)  # {829:0,100:1}
+    color_result = colouration(temp_obj)  # {829:0,100:1}
     for item in db_his:
         item['color'] = color_result.get(item['total'])
         returnArr.append(item)
@@ -179,7 +178,6 @@ async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Bo
                           search: str = Body(None),
                           user: User = Depends(get_current_user_authorizer(required=True)),
                           db: AsyncIOMotorClient = Depends(get_database)):
-    # db_self_dict = await get_work_new_word_result(db, {'work_history_id': {'$in': ids}, 'user_id': user.id})
     query_obj = {'work_history_id': {'$in': ids}, 'user_id': user.id}
     if search is not None:
         search = re.compile(re.escape(search))
