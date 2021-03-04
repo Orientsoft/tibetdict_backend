@@ -31,8 +31,11 @@ def query_es_file_content(index: str, keyword: str, file_id: str):
     query = {
         "sort": [{"createdAt": "desc"}],
         "query": {
-            "match_phrase": {
-                "content": keyword,
+            "bool": {
+                "must": [
+                    {"match_phrase": {"content": keyword}},
+                    {"term": {"id": file_id}},
+                ]
             }
         },
         "highlight": {
@@ -63,4 +66,8 @@ curl -XPUT "192.168.0.20:9201/tibetan-content/_settings" -H 'Content-Type: appli
 '''
 
 if __name__ == '__main__':
-    print(query_es('tibetan-content-dev', 'གྱ་ནོམ་པ'))
+    import time
+    # print(query_es('tibetan-content-dev', 'གྱ་ནོམ་པ'))
+    start = time.time()
+    print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ','6146f1047c8f11eb97b2080027ce4314'))
+    print(time.time()-start)

@@ -7,7 +7,7 @@ from loguru import logger
 from fastapi_plugins import depends_redis
 from aioredis import Redis
 from datetime import datetime
-from config import timezone, max_limit, WORD_POOL_KEY, API_KEY
+from config import timezone, max_limit, WORD_POOL_KEY, API_KEY, ES_INDEX
 from model.user import User
 from model.work_history import WorkHistoryCreateModel, WorkTypeEnum
 from model.self_dict import SelfDictCreateModel
@@ -24,6 +24,7 @@ from crud.word_dict import get_dict
 from common.worker import celery_app
 
 from common.utils import colouration
+from common.search import query_es, query_es_file_content
 
 router = APIRouter()
 
@@ -184,7 +185,20 @@ async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Bo
         query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}}]
     db_self_dict = await get_self_dict_list(db, query_obj, page, limit)
     count = await count_self_dict_by_query(db, query_obj)
-    return {'data': db_self_dict, 'total': count}
+    # get work_history_id with file_id
+    work_file_info = {}  # key:work_history_id,value:file_id
+    work_data = await get_work_history_list(db, {'id': {'$in': ids}}, 1, len(ids))
+    for w in work_data:
+        work_file_info[w.id] = w.file_id
+    returnData = []
+    for item in db_self_dict:
+        temp = item.dict()
+        es_result = query_es_file_content(index=ES_INDEX, keyword=item.word,
+                                          file_id=work_file_info[item.work_history_id])
+        temp['sentence'] = es_result['hits']['hits'][0]['highlight']['content'] if es_result['hits']['total'][
+            'value'] else []
+        returnData.append(temp)
+    return {'data': returnData, 'total': count}
 
 
 @router.post('/work/notify', tags=['work'], name='算法回调接口')
