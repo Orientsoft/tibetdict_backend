@@ -1,5 +1,7 @@
 FROM python:3.8.1-slim
 
+RUN apt-get update && apt-get install catdoc
+
 RUN mkdir /install
 WORKDIR /install
 COPY requirements.txt /requirements.txt
