@@ -399,9 +399,16 @@ async def search_file(search: str = Body(...), file_id: str = Body(None), page: 
     }
     print(result)
     for r in result['hits']['hits']:
+        content = []
+        for s in r['highlight']['content']:
+            header = s.split('<em>')[0]
+            end = s.rsplit('</em>')[-1]
+            middle_end_postion = len(s) - len(end)
+            middle = s[len(header):middle_end_postion]
+            content.append([header,middle,end])
         returnObj['data'].append({
             'id': r['_source']['id'],
-            'sentence': r['highlight']['content']
+            'sentence': content
         })
     return returnObj
 
