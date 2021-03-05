@@ -23,6 +23,15 @@ async def get_cache(rd: Redis, key: str):
         return None
 
 
+async def del_cache(rd: Redis, key: str):
+    try:
+        await rd.delete(key)
+    except Exception as e:
+        return None
+    finally:
+        return True
+
+
 async def word_pool_check_cache(rd: Redis, key: str, word_pool: List):
     result = []
 
