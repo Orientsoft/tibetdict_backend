@@ -19,7 +19,7 @@ data = {
         '40014': 'File format is abnormal',
         '40015': 'No results',
         '40016': 'Limit exceeded',
-        '40017': 'Backend error, please contact administer'
+        '40017': 'The background is abnormal, please contact the administrator'
     },
     'zh-cn': {
         '2001': '操作成功',
@@ -61,6 +61,6 @@ data = {
         '40014': 'ཡིག་ཆའི་རྣམ་པ་རྒྱུན་ལྡན་མ་རེད། ',
         '40015': 'གནས་སྐབས་འབྲས་མེད། ',
         '40016': 'ཚད་འཛིན་ལས་བརྒལ། ',
-        '40017': ''
+        '40017': 'རྒྱབ་སྟེགས་རྒྱུན་ལྡོག། དོ་དམ་པ་ལ་འབྲེལ་བར་མཛོད། '
     }
 }
