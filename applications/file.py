@@ -277,6 +277,18 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         is_check=False,
         tags=subpath.split('/')[0:2:] if subpath else []  # 前两级目录作为分类
     )
+    if prefix_dir:
+        complete_path = f'{prefix_dir}/{path}'
+    else:
+        complete_path = path
+
+    # 原始文件
+    data.origin = f'origin/{user.id}/{complete_path}'
+    data.parsed = None
+    # 查重
+    result = await get_file(conn=db, query={'origin': data.origin})
+    if result:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='400013')
     '''
     1.txt 本地存储，
     2.docx python-docx转换
@@ -316,18 +328,6 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         os.remove(origin_temp_file_name)
 
     m = MinioUploadPrivate()
-    if prefix_dir:
-        complete_path = f'{prefix_dir}/{path}'
-    else:
-        complete_path = path
-
-    # 原始文件
-    data.origin = f'origin/{user.id}/{complete_path}'
-    data.parsed = None
-    # 查重
-    result = await get_file(conn=db, query={'origin': data.origin})
-    if result:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='400013')
     # es bulk操作
     actions = [
         {'index': {'_index': ES_INDEX, '_id': data.id}},
