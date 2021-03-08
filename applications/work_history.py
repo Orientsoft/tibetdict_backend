@@ -249,3 +249,10 @@ async def work_new_result(work_id: str = Body(...), result: List = Body(...), co
     print(update_obj)
     await update_work_history(db, {'id': work_id}, {'$set': update_obj})
     return {}
+
+
+@router.get('/poscode', tags=['work'], name='词性码表')
+async def get_pos_code():
+    from poscode import data
+
+    return {'data': data}
