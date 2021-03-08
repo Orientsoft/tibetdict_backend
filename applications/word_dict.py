@@ -11,6 +11,7 @@ from crud.word_dict import create_word_stat_dict, get_word_stat_dict_list, get_w
     count_word_stat_dict_by_query, batch_create_word_stat_dict, remove_word_stat_dict
 from common.cache import del_cache
 from config import WORD_POOL_KEY, NEW_WORD_POOL_KEY
+from poscode import data as pos_data
 
 router = APIRouter()
 
@@ -83,6 +84,9 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40014')
     content = file.file.read().decode('utf-8')
     # content = content.replace(u'༌', u'་')
+    pos_dict = {}
+    for x in pos_data:
+        pos_dict[x['bo-cn']] = x['id']
     need_insert = []
     for line in content.splitlines():
         temp = line.split('\t')
@@ -95,6 +99,8 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
         # count = await count_word_stat_dict_by_query(db, {'word': word, 'nature': nature, 'type': type})
         # if count:
         #     continue
+        # 词性替换为码表id
+        nature = pos_dict.get(nature, nature)
         data = WordStatDictCreateModel(
             word=word,
             nature=nature,
