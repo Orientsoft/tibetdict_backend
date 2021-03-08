@@ -100,7 +100,7 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
         # if count:
         #     continue
         # 词性替换为码表id
-        nature = pos_dict.get(nature, nature)
+        nature = pos_dict.get(nature[3:], nature)
         data = WordStatDictCreateModel(
             word=word,
             nature=nature,
