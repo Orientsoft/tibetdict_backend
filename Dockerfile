@@ -14,6 +14,7 @@ COPY crud ./crud
 COPY model ./model
 COPY app.py app.py
 COPY respcode.py respcode.py
+COPY poscode.py poscode.py
 COPY start.sh ./start.sh
 RUN chmod a+x start.sh
 
