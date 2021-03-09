@@ -244,7 +244,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
                       db: AsyncIOMotorClient = Depends(get_database)):
     attr = file.filename.rsplit('.')[-1]
     if attr not in ['txt', 'docx', 'doc']:
-        raise HTTPException(status_code=400, detail='100141')
+        raise HTTPException(status_code=400, detail='40014')
 
     '''
     path:
