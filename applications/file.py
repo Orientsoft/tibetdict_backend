@@ -288,7 +288,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     # 查重
     result = await get_file(conn=db, query={'origin': data.origin})
     if result:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='400013')
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40013')
     '''
     1.txt 本地存储，
     2.docx python-docx转换
@@ -320,7 +320,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
                 cmd = f"textutil -convert txt {origin_temp_file_name} -output {saveas_txt_file_name}"
                 os.system(cmd)
             else:
-                raise HTTPException(status_code=400, detail='100141')
+                raise HTTPException(status_code=400, detail='40014')
             with open(saveas_txt_file_name, 'r') as f:
                 origin_content = f.read()
             os.remove(saveas_txt_file_name)
