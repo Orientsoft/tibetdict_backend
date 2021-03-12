@@ -273,7 +273,7 @@ async def post_work_result_export(
         words.append('')
     else:
         # 按照频率排序
-        words.sort(key=lambda x: int(x.split(',')[1]))
+        words.sort(key=lambda x: int(x.split(',')[1]), reverse=True)
     if not os.path.exists('temp'):
         os.mkdir('temp')
     file_path = f'temp/stat-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt'
