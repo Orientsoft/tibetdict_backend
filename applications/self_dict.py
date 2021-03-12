@@ -61,7 +61,7 @@ async def patch_dict(data: SelfDictUpdateModel = Body(...),
     return {'msg': '2001'}
 
 
-@router.patch('/self/dict', tags=['自有词库'], name="用户自有词库(删除:'1'或校验:'2')")
+@router.patch('/self/dict/operator', tags=['自有词库'], name="用户自有词库(删除:'1'或校验:'2')")
 async def batch_operator(ids: List[str] = Body(...), operator: str = Body(...),
                          user: User = Depends(get_current_user_authorizer(required=True)),
                          db: AsyncIOMotorClient = Depends(get_database)
