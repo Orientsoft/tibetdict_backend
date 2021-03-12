@@ -34,6 +34,11 @@ async def count_user_by_query(conn: AsyncIOMotorClient, query: Optional[dict]):
     return result
 
 
+async def update_user(conn: AsyncIOMotorClient, query: Optional[dict], item: Optional[dict]):
+    conn[database_name][user_collection_name].update_one(query, {'$set': item})
+    return True
+
+
 async def update_password(conn: AsyncIOMotorClient, query: Optional[dict], password: str):
     salt = generate_salt()
     hashed_password = get_password_hash(salt + password)

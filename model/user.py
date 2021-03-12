@@ -7,7 +7,7 @@ from typing import List
 
 class UserBaseModel(BaseModel):
     username: str
-    # 0-管理员；1-普通用户
+    # 0-控制台；1-语料搜索；2-词频统计；3-新词发现
     role: List[int]
 
 

@@ -16,11 +16,11 @@ from common.mongodb import AsyncIOMotorClient, get_database
 
 from crud.file import create_file, get_file_list, count_file_by_query, delete_file, update_file, get_file
 from crud.work_history import count_work_history_by_query
-from model.file import FileCreateModel
+from model.file import FileCreateModel, OriginEnum
 from common.upload import MinioUploadPrivate
-from common.common import contenttomd5, tokenize_words
+from common.common import contenttomd5
 from common.search import bulk
-from config import ES_INDEX, timezone
+from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
 
 router = APIRouter()
@@ -105,11 +105,7 @@ _platform = platform.system().lower()
 async def get_my_file(user_id: str = None, search: str = None, is_check: bool = None,
                       user: User = Depends(get_current_user_authorizer()),
                       db: AsyncIOMotorClient = Depends(get_database)):
-    if 0 in user.role:
-        u_id = user_id or user.id
-    else:
-        u_id = user.id
-    query_obj = {'user_id': u_id}
+    query_obj = {'user_id': user_id}
     if search is not None:
         query_obj['file_name'] = {'$regex': search}
     if is_check is not None:
@@ -129,7 +125,8 @@ async def get_file_content(file_id: str,
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
-    if db_file.user_id != user.id and 0 not in user.role:
+    # 既不是自己的文件，且不是共享文件
+    if db_file.user_id != user.id and db_file.user_id != SHARE_USER_ID:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     m = MinioUploadPrivate()
     content = m.get_object(db_file.origin)
@@ -148,54 +145,9 @@ async def patch_file(file_id: str = Body(...),
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
-    if db_file.user_id != user.id and 0 not in user.role:
+    if db_file.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
-    # if is_check is not None:
-    #     update_obj['is_check'] = is_check
-    # if content is not None:
-    #     # es bulk操作
-    #     actions = [
-    #         {'index': {'_index': ES_INDEX, '_id': file_id}},
-    #         {'id': file_id, 'content': content, 'createdAt': datetime.now(tz=timezone).isoformat()}
-    #     ]
-    #     result = bulk(index=ES_INDEX, body=actions)
-    #     if result['errors']:
-    #         logger.error(str(result))
-    #         raise HTTPException(HTTP_400_BAD_REQUEST, )
-    #     else:
-    #         logger.info(str(result))
-    #     m = MinioUploadPrivate()
-    #     # 上传文件
-    #     m.commit(content.encode('utf-8'), db_file.parsed)
-    #     new_hash = contenttomd5(content.encode('utf-8'))
-    #     update_obj['p_hash'] = new_hash
-    # # 参数未传content，但是is_check修改为True，需要从minio读取content
-    # elif is_check:
-    #     m = MinioUploadPrivate()
-    #     content = m.get_object(db_file.parsed)
-    #     # es bulk操作
-    #     actions = [
-    #         {'index': {'_index': ES_INDEX, '_id': file_id}},
-    #         {'id': file_id, 'content': content.decode('utf-8'), 'createdAt': datetime.now(tz=timezone).isoformat()}
-    #     ]
-    #     result = bulk(index=ES_INDEX, body=actions)
-    #     if result['errors']:
-    #         logger.error(str(result))
-    #         raise HTTPException(HTTP_400_BAD_REQUEST, )
-    #     else:
-    #         logger.info(str(result))
-    # # is_check从True改为False时，es中对应内容应删除
-    # elif not is_check:
-    #     actions = [
-    #         {'delete': {'_index': ES_INDEX, '_id': file_id}}
-    #     ]
-    #     result = bulk(index=ES_INDEX, body=actions)
-    #     if result['errors']:
-    #         logger.error(str(result))
-    #         raise HTTPException(HTTP_400_BAD_REQUEST, )
-    #     else:
-    #         logger.info(str(result))
     if book_name:
         update_obj['book_name'] = book_name
     if author:
@@ -215,7 +167,7 @@ async def del_file(file_id: str,
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
-    if db_file.user_id != user.id and 0 not in user.role:
+    if db_file.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     # 文件不能在work_history中出现
     use_count = await count_work_history_by_query(db, {'file_id': file_id})
@@ -328,17 +280,18 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         os.remove(origin_temp_file_name)
 
     m = MinioUploadPrivate()
-    # es bulk操作
-    actions = [
-        {'index': {'_index': ES_INDEX, '_id': data.id}},
-        {'id': data.id, 'content': origin_content, 'createdAt': datetime.now(tz=timezone).isoformat()}
-    ]
-    result = bulk(index=ES_INDEX, body=actions)
-    if result['errors']:
-        logger.error(str(result))
-        raise HTTPException(HTTP_400_BAD_REQUEST, )
-    else:
-        logger.info(str(result))
+    if user.id == SHARE_USER_ID:
+        # es bulk操作
+        actions = [
+            {'index': {'_index': ES_INDEX, '_id': data.id}},
+            {'id': data.id, 'content': origin_content, 'createdAt': datetime.now(tz=timezone).isoformat()}
+        ]
+        result = bulk(index=ES_INDEX, body=actions)
+        if result['errors']:
+            logger.error(str(result))
+            raise HTTPException(HTTP_400_BAD_REQUEST, )
+        else:
+            logger.info(str(result))
     # 上传原始文件
     m.commit(origin_content.encode('utf-8'), data.origin)
     # parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", origin_content)
@@ -350,26 +303,33 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     return {'id': data.id}
 
 
-@router.get('/my/tree', tags=['file'], name='我的目录')
-async def get_my_content(user: User = Depends(get_current_user_authorizer())):
+@router.get('/tree', tags=['file'], name='文件目录')
+async def get_my_content(origin: OriginEnum, user: User = Depends(get_current_user_authorizer())):
     m = MinioUploadPrivate()
-    return m.list_tree(f'origin/{user.id}/')
+    if origin == OriginEnum.private:
+        return m.list_tree(f'origin/{user.id}/')
+    elif origin == OriginEnum.share:
+        return m.list_content(f'origin/{SHARE_USER_ID}/')
 
 
 @router.post('/content/file', tags=['file'], name='目录中内容')
-async def get_content_file(path: str = Body(None, embed=True), search: str = Body(None),
+async def get_content_file(origin: OriginEnum = Body(...), path: str = Body(None), search: str = Body(None),
                            user: User = Depends(get_current_user_authorizer()),
                            db: AsyncIOMotorClient = Depends(get_database)):
     m = MinioUploadPrivate()
-    if path:
-        comp_path = f'origin/{user.id}/{path}/'
+    if origin == OriginEnum.private:
+        user_id = user.id
     else:
-        comp_path = f'origin/{user.id}/'
+        user_id = SHARE_USER_ID
+    if path:
+        comp_path = f'origin/{user_id}/{path}/'
+    else:
+        comp_path = f'origin/{user_id}/'
     result = m.list_content(comp_path, False)
     condition_file = []
     for item in result:
         condition_file.append(item['object_name'])
-    query_obj = {'user_id': user.id, 'origin': {'$in': condition_file}}
+    query_obj = {'origin': {'$in': condition_file}}
     if search is not None:
         query_obj['file_name'] = {'$regex': search}
     data = await get_file_list(db, query_obj)
@@ -405,7 +365,7 @@ async def search_file(search: str = Body(...), file_id: str = Body(None), page: 
             end = s.rsplit('</em>')[-1]
             middle_end_postion = len(s) - len(end)
             middle = s[len(header):middle_end_postion]
-            content.append([header,middle,end])
+            content.append([header, middle, end])
         returnObj['data'].append({
             'id': r['_source']['id'],
             'sentence': content

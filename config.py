@@ -45,3 +45,5 @@ ES_PORT = 9200
 ES_NAME = 'elastic'
 ES_PASSWD = 'Welcome@123'
 ES_INDEX = 'tibetan-content-dev'
+# 共享语料库user_id
+SHARE_USER_ID = 'b95d552e5add11ebb13ca0a4c56447ad'

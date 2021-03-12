@@ -1,6 +1,7 @@
 from pydantic import BaseModel, validator
 from model.common import IDModel, UpdatedAtModel, CreatedAtModel
 from typing import List
+from enum import Enum
 
 
 class FileBaseModel(BaseModel):
@@ -27,3 +28,8 @@ class FileInDB(FileBaseModel):
     id: str
     createdAt: str
     updatedAt: str
+
+
+class OriginEnum(str, Enum):
+    private = 'private'
+    share = 'share'
