@@ -9,6 +9,7 @@ import os, subprocess
 import re
 import platform
 import shutil
+import uuid
 
 from model.user import User
 from common.jwt import get_current_user_authorizer
@@ -19,7 +20,7 @@ from crud.work_history import count_work_history_by_query
 from model.file import FileCreateModel, OriginEnum
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5
-from common.search import bulk
+from common.search import bulk, delete_es_by_fileid
 from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
 
@@ -176,16 +177,9 @@ async def del_file(file_id: str,
     m = MinioUploadPrivate()
     # m.remove(db_file.parsed)
     m.remove(db_file.origin)
-    # 删除es中的数据
-    actions = [
-        {'delete': {'_index': ES_INDEX, '_id': file_id}}
-    ]
-    result = bulk(index=ES_INDEX, body=actions)
-    if result['errors']:
-        logger.error(str(result))
-        raise HTTPException(HTTP_400_BAD_REQUEST, )
-    else:
-        logger.info(str(result))
+    if user.id == SHARE_USER_ID:
+        # 删除es中的数据
+        delete_es_by_fileid(index=ES_INDEX, id=file_id)
     await delete_file(db, {'id': file_id, 'user_id': user.id})
     return {'msg': '2002'}
 
@@ -282,10 +276,16 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     m = MinioUploadPrivate()
     if user.id == SHARE_USER_ID:
         # es bulk操作
-        actions = [
-            {'index': {'_index': ES_INDEX, '_id': data.id}},
-            {'id': data.id, 'content': origin_content, 'createdAt': datetime.now(tz=timezone).isoformat()}
-        ]
+        actions = []
+        temp_content = origin_content.split('།')
+        seq = 1
+        for r in temp_content:
+            if r.replace(' ', '') == '':
+                continue
+            actions.append({'index': {'_index': ES_INDEX, '_id': uuid.uuid1().hex}})
+            actions.append({'id': data.id, 'seq': seq, 'content': r,
+                            'createdAt': datetime.now(tz=timezone).isoformat()})
+            seq = seq + 1
         result = bulk(index=ES_INDEX, body=actions)
         if result['errors']:
             logger.error(str(result))
@@ -295,10 +295,8 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     # 上传原始文件
     m.commit(origin_content.encode('utf-8'), data.origin)
     # parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", origin_content)
-    # m.commit(parsed_content.encode('utf-8'), data.parsed)
     # 文件指纹
     data.o_hash = contenttomd5(origin_content.encode('utf-8'))
-    # data.p_hash = contenttomd5(parsed_content.encode('utf-8'))
     await create_file(db, data)
     return {'id': data.id}
 

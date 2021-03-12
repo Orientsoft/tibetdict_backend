@@ -56,6 +56,12 @@ def bulk(index: str, body: list):
     return result
 
 
+def delete_es_by_fileid(index, id):
+    query = {"query": {"term": {"id": id}}}
+    res = es.delete_by_query(index=index, body=query)
+    print(res)
+
+
 '''
 curl -XPUT "192.168.0.20:9201/tibetan-content/_settings" -H 'Content-Type: application/json' -d' {
     "index" : {
@@ -67,7 +73,9 @@ curl -XPUT "192.168.0.20:9201/tibetan-content/_settings" -H 'Content-Type: appli
 
 if __name__ == '__main__':
     import time
+
     # print(query_es('tibetan-content-dev', 'གྱ་ནོམ་པ'))
     start = time.time()
-    print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ','6146f1047c8f11eb97b2080027ce4314'))
-    print(time.time()-start)
+    print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ', '6146f1047c8f11eb97b2080027ce4314'))
+    print(time.time() - start)
+    delete_es_by_fileid('tibetan-content-dev','f8e9d6867d5f11ebbe5d080027ce4314')
