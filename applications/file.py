@@ -290,8 +290,8 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         if result['errors']:
             logger.error(str(result))
             raise HTTPException(HTTP_400_BAD_REQUEST, )
-        else:
-            logger.info(str(result))
+        # else:
+        #     logger.info(str(result))
     # 上传原始文件
     m.commit(origin_content.encode('utf-8'), data.origin)
     # parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", origin_content)
