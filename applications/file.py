@@ -309,7 +309,7 @@ async def get_my_content(origin: OriginEnum, user: User = Depends(get_current_us
     if origin == OriginEnum.private:
         return m.list_tree(f'origin/{user.id}/')
     elif origin == OriginEnum.share:
-        return m.list_content(f'origin/{SHARE_USER_ID}/')
+        return m.list_tree(f'origin/{SHARE_USER_ID}/')
 
 
 @router.post('/content/file', tags=['file'], name='目录中内容')
