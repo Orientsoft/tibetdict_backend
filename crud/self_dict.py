@@ -19,6 +19,11 @@ async def batch_create_self_dict(conn: AsyncIOMotorClient, data: List):
     return True
 
 
+async def get_self_dict_without_limit(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = conn[database_name][self_dict_collection_name].find(query)
+    return [SelfDictInDB(**x) async for x in result]
+
+
 async def get_self_dict_list(conn: AsyncIOMotorClient, query: Optional[dict], page: int,
                              limit: int):
     result = conn[database_name][self_dict_collection_name].find(query).skip((page - 1) * limit).limit(limit)

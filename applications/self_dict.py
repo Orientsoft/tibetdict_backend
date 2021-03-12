@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi.responses import FileResponse
 from starlette.status import HTTP_400_BAD_REQUEST
 from typing import List
 
@@ -7,9 +8,12 @@ from common.jwt import get_current_user_authorizer
 from common.mongodb import AsyncIOMotorClient, get_database
 
 from model.self_dict import SelfDictCreateModel, SelfDictUpdateModel
-from crud.self_dict import create_self_dict, get_self_dict, get_self_dict_list, count_self_dict_by_query, \
+from crud.self_dict import create_self_dict, get_self_dict, get_self_dict_without_limit, count_self_dict_by_query, \
     update_self_dict, delete_self_dict, get_self_dict_list_by_query_with_filename
+from datetime import datetime
+from config import timezone
 import re
+import os
 
 router = APIRouter()
 
@@ -75,3 +79,22 @@ async def batch_operator(ids: List[str] = Body(...), operator: str = Body(...),
     else:
         pass
     return {'msg': '2001'}
+
+
+@router.post('/self/dict/export', tags=['自有词库'], name='新词发现导出')
+async def post_self_dict_export(
+        ids: List[str] = Body(..., embed=True),
+        user: User = Depends(get_current_user_authorizer(required=True)),
+        db: AsyncIOMotorClient = Depends(get_database)
+):
+    data_dict = await get_self_dict_without_limit(conn=db, query={'work_history_id': {'$in': ids}, 'is_check': True})
+    if not os.path.exists('temp'):
+        os.mkdir('temp')
+    filepath = f'temp/new_word_{datetime.now(tz=timezone).isoformat()[:10]}.txt'
+    words = []
+    for x in data_dict:
+        words.append(x.word + '\n')
+    with open(filepath, 'w+', encoding='utf-8') as f:
+        f.writelines(words)
+    headers = {'content-type': 'text/plain'}
+    return FileResponse(filepath, headers=headers, filename=f'new_word_{datetime.now(tz=timezone).isoformat()[:10]}.txt')
