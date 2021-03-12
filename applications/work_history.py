@@ -1,30 +1,28 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
 from starlette.status import HTTP_400_BAD_REQUEST
 from typing import List
-import re
 from collections import Counter
-from loguru import logger
 from fastapi_plugins import depends_redis
 from aioredis import Redis
 from datetime import datetime
-from config import timezone, max_limit, WORD_POOL_KEY, API_KEY, ES_INDEX
+from config import timezone, max_limit, API_KEY, ES_INDEX
 from model.user import User
 from model.work_history import WorkHistoryCreateModel, WorkTypeEnum
 from model.self_dict import SelfDictCreateModel
 from common.jwt import get_current_user_authorizer
 from common.mongodb import AsyncIOMotorClient, get_database
 from common.upload import MinioUploadPrivate
-
 from crud.file import get_file, update_file, batch_update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
-    get_work_history, get_work_history_result_sum, update_work_history, delete_work_history
-from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result, \
-    get_self_dict_list, delete_self_dict, create_self_dict
-from crud.word_dict import get_dict
+    get_work_history, get_work_history_result_sum, update_work_history, delete_work_history, \
+    get_work_history_without_limit
+from crud.self_dict import count_self_dict_by_query, get_self_dict_list, delete_self_dict, create_self_dict
 from common.worker import celery_app
-
 from common.utils import colouration
-from common.search import query_es, query_es_file_content
+from common.search import query_es_file_content
+import re
+import os
 
 router = APIRouter()
 
@@ -248,3 +246,36 @@ async def get_pos_code():
     from poscode import data
 
     return {'data': data}
+
+
+@router.post('/work/result/export', tags=['work'], name='词频统计导出')
+async def post_work_result_export(
+        color: List[int] = Body(...), ids: List[str] = Body(...),
+        user: User = Depends(get_current_user_authorizer(required=True)),
+        db: AsyncIOMotorClient = Depends(get_database)
+):
+    data_result = await get_work_history_without_limit(conn=db, query={'id': {'$in': ids}})
+    word_result = {}
+    # 拼装词目为键，频率为值得字典，重复词目频率相加
+    for x in data_result:
+        for y in x.o_result:
+            # 筛选颜色
+            if y['color'] not in color:
+                continue
+            if y['word'] not in word_result:
+                word_result[y['word']] = y['count']
+            else:
+                word_result[y['word']] = word_result[y['word']] + y['count']
+    words = []
+    for key, value in word_result.items():
+        words.append(f'{key}, {value}\n')
+    if not word_result:
+        words.append('')
+    if not os.path.exists('temp'):
+        os.mkdir('temp')
+    file_path = f'temp/stat-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt'
+    with open(file_path, 'w+', encoding='utf-8') as f:
+        f.writelines(words)
+    headers = {'content-type': 'text/plain'}
+    return FileResponse(file_path, headers=headers,
+                        filename=f'stat-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt')

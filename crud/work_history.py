@@ -14,6 +14,11 @@ async def get_work_history(conn: AsyncIOMotorClient, query: Optional[dict],
     return WorkHistoryInDB(**row) if row else None
 
 
+async def get_work_history_without_limit(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = conn[database_name][work_history_collection_name].find(query)
+    return [WorkHistoryInDB(**x) async for x in result]
+
+
 async def create_work_history(conn: AsyncIOMotorClient, data: WorkHistoryCreateModel) -> str:
     conn[database_name][work_history_collection_name].insert_one(data.dict())
     return data.id

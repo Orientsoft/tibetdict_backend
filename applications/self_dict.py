@@ -90,11 +90,14 @@ async def post_self_dict_export(
     data_dict = await get_self_dict_without_limit(conn=db, query={'work_history_id': {'$in': ids}, 'is_check': True})
     if not os.path.exists('temp'):
         os.mkdir('temp')
-    filepath = f'temp/new_word_{datetime.now(tz=timezone).isoformat()[:10]}.txt'
+    file_path = f'temp/new-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt'
     words = []
     for x in data_dict:
         words.append(x.word + '\n')
-    with open(filepath, 'w+', encoding='utf-8') as f:
+    if not words:
+        words.append('')
+    with open(file_path, 'w+', encoding='utf-8') as f:
         f.writelines(words)
     headers = {'content-type': 'text/plain'}
-    return FileResponse(filepath, headers=headers, filename=f'new_word_{datetime.now(tz=timezone).isoformat()[:10]}.txt')
+    return FileResponse(file_path, headers=headers,
+                        filename=f'new-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt')
