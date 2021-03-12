@@ -39,8 +39,6 @@ async def get_self_dict_list_by_query_with_filename(conn: AsyncIOMotorClient, qu
         id=x['id'],
         word=x['word'],
         user_id=x['user_id'],
-        nature=x['nature'],
-        context=x['context'],
         is_check=x['is_check'],
         createdAt=x['createdAt'],
         updatedAt=x['updatedAt'],
@@ -54,7 +52,7 @@ async def count_self_dict_by_query(conn: AsyncIOMotorClient, query: Optional[dic
 
 
 async def update_self_dict(conn: AsyncIOMotorClient, query: Optional[dict], item: dict):
-    conn[database_name][self_dict_collection_name].update_one(query, item)
+    conn[database_name][self_dict_collection_name].update_many(query, item)
     return True
 
 
@@ -82,7 +80,7 @@ async def get_work_new_word_result(conn: AsyncIOMotorClient, query: Optional[dic
                      ],
                      'as': 'work'}},
         {'$unwind': '$work'},
-        {'$project': {'file_name': '$work.file_name', 'file_id': '$work.file_id', 'word': 1, 'nature': 1, 'context': 1,
+        {'$project': {'file_name': '$work.file_name', 'file_id': '$work.file_id', 'word': 1,
                       'user_id': 1, 'createdAt': 1, 'is_check': 1, 'work_id': '$work.id', 'id': 1, '_id': 0}},
         {'$sort': {'createdAt': -1}}
     ])

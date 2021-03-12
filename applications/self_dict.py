@@ -16,17 +16,15 @@ router = APIRouter()
 
 @router.post('/self/dict', tags=['自有词库'], name='用户添加自有词库')
 async def add_dict(
-        word: str = Body(...), context: str = Body(...), nature: str = Body(None),
+        word: str = Body(..., embed=True),
         user: User = Depends(get_current_user_authorizer(required=True)),
         db: AsyncIOMotorClient = Depends(get_database)
 ):
-    db_w = await get_self_dict(db, {'word': word, 'nature': nature, 'user_id': user.id})
+    db_w = await get_self_dict(db, {'word': word, 'user_id': user.id})
     if db_w:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40013')
     await create_self_dict(db, SelfDictCreateModel(
         word=word,
-        nature=nature,
-        context=context,
         user_id=user.id,
         is_check=False
     ))
@@ -46,8 +44,7 @@ async def get_dict(user_id: str = None, search: str = None, page: int = 1, limit
     query_obj = {'user_id': u_id}
     if search is not None:
         search = re.compile(re.escape(search))
-        query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}},
-                            {'context': {'$regex': search}}]
+        query_obj['$or'] = [{'word': {'$regex': search}}]
     if is_check is not None:
         query_obj['is_check'] = is_check
     data = await get_self_dict_list_by_query_with_filename(db, query_obj, page, limit)
@@ -64,10 +61,17 @@ async def patch_dict(data: SelfDictUpdateModel = Body(...),
     return {'msg': '2001'}
 
 
-@router.delete('/self/dict', tags=['自有词库'], name='用户删除自有词库')
-async def batch_add(ids: List[str] = Body(...),
-                    user: User = Depends(get_current_user_authorizer(required=True)),
-                    db: AsyncIOMotorClient = Depends(get_database)
-                    ):
-    await delete_self_dict(db, {'id': {'$in': ids}, 'user_id': user.id})
+@router.patch('/self/dict', tags=['自有词库'], name="用户自有词库(删除:'1'或校验:'2')")
+async def batch_operator(ids: List[str] = Body(...), operator: str = Body(...),
+                         user: User = Depends(get_current_user_authorizer(required=True)),
+                         db: AsyncIOMotorClient = Depends(get_database)
+                         ):
+    if operator == '1':
+        # 删除
+        await delete_self_dict(db, {'id': {'$in': ids}, 'user_id': user.id})
+    elif operator == '2':
+        # 校验
+        await update_self_dict(db, {'id': {'$in': ids}, 'user_id': user.id}, {'$set': {'is_check': True}})
+    else:
+        pass
     return {'msg': '2001'}

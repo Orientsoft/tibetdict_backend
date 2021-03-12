@@ -19,7 +19,7 @@ from crud.file import get_file, update_file, batch_update_file
 from crud.work_history import create_work_history, get_work_history_list, count_work_history_by_query, \
     get_work_history, get_work_history_result_sum, update_work_history, delete_work_history
 from crud.self_dict import batch_create_self_dict, count_self_dict_by_query, get_work_new_word_result, \
-    get_self_dict_list, delete_self_dict
+    get_self_dict_list, delete_self_dict, create_self_dict
 from crud.word_dict import get_dict
 from common.worker import celery_app
 
@@ -182,7 +182,7 @@ async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Bo
     query_obj = {'work_history_id': {'$in': ids}, 'user_id': user.id}
     if search is not None:
         search = re.compile(re.escape(search))
-        query_obj['$or'] = [{'word': {'$regex': search}}, {'nature': {'$regex': search}}]
+        query_obj['$or'] = [{'word': {'$regex': search}}]
     db_self_dict = await get_self_dict_list(db, query_obj, page, limit)
     count = await count_self_dict_by_query(db, query_obj)
     # get work_history_id with file_id
@@ -223,27 +223,19 @@ async def work_new_result(work_id: str = Body(...), result: List = Body(...), co
         update_obj[_result_key] = list(result)
         m.commit(context.encode('utf-8'), f'result/{calc_type}/{db_work_history.user_id}/{work_id}.txt')
         if is_save_to_dict:
-            add_self_dict_data = []
             for r in result:
                 word = r.get('word')
-                nature = r.get('nature', None)
-                context = r.get('context', None)
                 _id = r.get('id')
-                count = await count_self_dict_by_query(db, {'word': word, 'context': context,
-                                                            'user_id': db_work_history.user_id,
-                                                            'is_check': True})
-                if count > 0:
-                    continue
                 temp_data = SelfDictCreateModel(
                     id=_id,
                     word=word,
-                    nature=nature,
-                    context=context,
                     user_id=db_work_history.user_id,
                     work_history_id=work_id,
                 )
-                add_self_dict_data.append(temp_data.dict())
-            await batch_create_self_dict(db, add_self_dict_data)
+                try:
+                    await create_self_dict(db, temp_data)
+                except:
+                    pass
     else:
         update_obj[_status_key] = 2
     print(update_obj)

@@ -5,8 +5,6 @@ from model.common import IDModel, UpdatedAtModel, CreatedAtModel
 class SelfDictBaseModel(BaseModel):
     word: str
     user_id: str
-    nature: str = None
-    context: str = None
     is_check: bool = False
     work_history_id: str = None
 
@@ -18,8 +16,6 @@ class SelfDictCreateModel(IDModel, UpdatedAtModel, CreatedAtModel, SelfDictBaseM
 class SelfDictUpdateModel(BaseModel):
     id: str
     word: str = None
-    nature: str = None
-    context: str = None
     is_check: bool = None
 
 
@@ -33,8 +29,6 @@ class SelfDictWithFilename(BaseModel):
     id: str
     word: str
     user_id: str
-    nature: str = None
-    context: str = None
     is_check: bool = False
     createdAt: str
     updatedAt: str
