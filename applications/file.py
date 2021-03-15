@@ -177,9 +177,8 @@ async def del_file(file_id: str,
     m = MinioUploadPrivate()
     # m.remove(db_file.parsed)
     m.remove(db_file.origin)
-    if user.id == SHARE_USER_ID:
-        # 删除es中的数据
-        delete_es_by_fileid(index=ES_INDEX, id=file_id)
+    # 删除es中的数据
+    delete_es_by_fileid(index=ES_INDEX, id=file_id)
     await delete_file(db, {'id': file_id, 'user_id': user.id})
     return {'msg': '2002'}
 
@@ -274,24 +273,23 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         os.remove(origin_temp_file_name)
 
     m = MinioUploadPrivate()
-    if user.id == SHARE_USER_ID:
-        # es bulk操作
-        actions = []
-        temp_content = origin_content.split('།')
-        seq = 1
-        for r in temp_content:
-            if r.replace(' ', '') == '':
-                continue
-            actions.append({'index': {'_index': ES_INDEX, '_id': uuid.uuid1().hex}})
-            actions.append({'id': data.id, 'seq': seq, 'content': r,
-                            'createdAt': datetime.now(tz=timezone).isoformat()})
-            seq = seq + 1
-        result = bulk(index=ES_INDEX, body=actions)
-        if result['errors']:
-            logger.error(str(result))
-            raise HTTPException(HTTP_400_BAD_REQUEST, )
-        # else:
-        #     logger.info(str(result))
+    # es bulk操作
+    actions = []
+    temp_content = origin_content.split('།')
+    seq = 1
+    for r in temp_content:
+        if r.replace(' ', '') == '':
+            continue
+        actions.append({'index': {'_index': ES_INDEX, '_id': uuid.uuid1().hex}})
+        actions.append({'id': data.id, 'seq': seq, 'content': r, 'user_id': user.id,
+                        'createdAt': datetime.now(tz=timezone).isoformat()})
+        seq = seq + 1
+    result = bulk(index=ES_INDEX, body=actions)
+    if result['errors']:
+        logger.error(str(result))
+        raise HTTPException(HTTP_400_BAD_REQUEST, )
+    else:
+        logger.info(str(result))
     # 上传原始文件
     m.commit(origin_content.encode('utf-8'), data.origin)
     # parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", origin_content)
@@ -339,15 +337,21 @@ async def get_content_file(origin: OriginEnum = Body(...), path: str = Body(None
 
 
 @router.post('/search', tags=['file'], name='搜索')
-async def search_file(search: str = Body(...), file_id: str = Body(None), page: int = Body(1), limit: int = Body(20),
+async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), page: int = Body(1),
+                      limit: int = Body(20),
                       user: User = Depends(get_current_user_authorizer())):
-    from common.search import query_es, query_es_file_content
+    from common.search import query_es
     start = (page - 1) * limit
     try:
-        if file_id:
-            result = query_es_file_content(index=ES_INDEX, keyword=search, file_id=file_id)
-        else:
-            result = query_es(index=ES_INDEX, keyword=search, start=start, size=limit)
+        queryObj = {
+            "bool": {
+                "must": [
+                    {"match_phrase": {"content": search}},
+                    {"term": {"user_id": user.id if origin == OriginEnum.private else SHARE_USER_ID}},
+                ]
+            }
+        }
+        result = query_es(index=ES_INDEX, queryObj=queryObj, start=start, size=limit)
     except Exception as e:
         logger.error(e)
         raise HTTPException(HTTP_400_BAD_REQUEST, '40017')

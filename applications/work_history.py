@@ -20,7 +20,7 @@ from crud.work_history import create_work_history, get_work_history_list, count_
 from crud.self_dict import count_self_dict_by_query, get_self_dict_list, delete_self_dict, create_self_dict
 from common.worker import celery_app
 from common.utils import colouration
-from common.search import query_es_file_content
+from common.search import query_es
 import re
 import os
 
@@ -191,8 +191,13 @@ async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Bo
     returnData = []
     for item in db_self_dict:
         temp = item.dict()
-        es_result = query_es_file_content(index=ES_INDEX, keyword=item.word,
-                                          file_id=work_file_info[item.work_history_id])
+        queryObj = {"bool": {
+            "must": [
+                {"match_phrase": {"content": item.word}},
+                {"term": {"id": work_file_info[item.work_history_id]}},
+            ]
+        }}
+        es_result = query_es(index=ES_INDEX, queryObj=queryObj)
         temp['sentence'] = es_result['hits']['hits'][0]['highlight']['content'] if es_result['hits']['total'][
             'value'] else []
         returnData.append(temp)
