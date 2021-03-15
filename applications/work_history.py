@@ -36,11 +36,11 @@ async def add_work_history(file_ids: List[str] = Body(...),
         raise HTTPException(HTTP_400_BAD_REQUEST, '40016')
     resp_data = []
     for file_id in file_ids:
-        db_file = await get_file(db, {'id': file_id, 'user_id': user.id})
+        db_file = await get_file(db, {'id': file_id})
         if not db_file:
             continue
         # 历史记录不再计算
-        db_his = await get_work_history(db, {'user_id': user.id, 'file_id': file_id, 'work_type': work_type})
+        db_his = await get_work_history(db, {'file_id': file_id, 'work_type': work_type})
         if db_his:
             resp_data.append({'work_id': db_his.id,
                               'file_id': db_his.file_id,
@@ -135,8 +135,7 @@ async def work_status(ids: List[str] = Body(..., embed=True),
 async def work_result(ids: List[str] = Body(..., embed=True),
                       user: User = Depends(get_current_user_authorizer(required=True)),
                       db: AsyncIOMotorClient = Depends(get_database)):
-    db_his = await get_work_history_result_sum(db, {'id': {'$in': ids}, 'user_id': user.id,
-                                                    'work_type': WorkTypeEnum.stat.value})
+    db_his = await get_work_history_result_sum(db, {'id': {'$in': ids}, 'work_type': WorkTypeEnum.stat.value})
     temp_obj = {}
     for r in db_his:
         temp_obj[r['word']] = r['total']
@@ -159,8 +158,8 @@ async def work_review(id: str, user: User = Depends(get_current_user_authorizer(
     db_his = await get_work_history(db, {'id': id}, show_result=True)
     # if db_his.p_status != 1 or not db_his.p_result:
     #     raise HTTPException(HTTP_400_BAD_REQUEST, '文档无法审阅')
-    if db_his.user_id != user.id or 0 not in user.role:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    # if db_his.user_id != user.id or 0 not in user.role:
+    #     raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     m = MinioUploadPrivate()
     content = m.get_object(f'result/origin/{db_his.user_id}/{db_his.id}.txt')
     returnObj = {
