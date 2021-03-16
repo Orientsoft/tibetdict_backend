@@ -138,6 +138,9 @@ async def work_result(ids: List[str] = Body(..., embed=True),
     db_his = await get_work_history_result_sum(db, {'id': {'$in': ids}, 'work_type': WorkTypeEnum.stat.value})
     temp_obj = {}
     for r in db_his:
+        # r['word'].endswith('点') 加上点
+        if not r['word'].endswith('་'):
+            r['word'] = f"{r['word']}"
         temp_obj[r['word']] = r['total']
     returnArr = []
     if not temp_obj:
@@ -145,6 +148,9 @@ async def work_result(ids: List[str] = Body(..., embed=True),
     # 计算颜色
     color_result = colouration(temp_obj)  # {829:0,100:1}
     for item in db_his:
+        # item['word'].endswith('点') 加上点
+        if not item['word'].endswith('་'):
+            item['word'] = f"{item['word']}"
         item['color'] = color_result.get(item['total'])
         returnArr.append(item)
     temp_color = color_result.values()
