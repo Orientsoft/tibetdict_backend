@@ -77,7 +77,7 @@ async def init_index(conn: AsyncIOMotorClient) -> bool:
             [('id', pymongo.ASCENDING)], unique=True)
         # self_dict
         await conn[database_name][self_dict_collection_name].create_index(
-            [('word', pymongo.ASCENDING)], unique=True)
+            [('word', pymongo.ASCENDING), ('user_id', pymongo.ASCENDING)], unique=True)
     except:
         pass
     try:
