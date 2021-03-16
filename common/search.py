@@ -10,13 +10,13 @@ def query_es(index: str, queryObj: dict, start: int = 0, size: int = 10):
         "size": size,
         "sort": [{"createdAt": "desc"}],
         "query": queryObj,
-        "highlight": {
-            "boundary_max_scan": 40,
-            "fields": {
-                "content": {"force_source": True, "type": "plain", "fragment_size": 150, "number_of_fragments": 5}
-            }
-        },
-        "_source": ["highlight", "id"],
+        # "highlight": {
+        #     "boundary_max_scan": 40,
+        #     "fields": {
+        #         "content": {"force_source": True, "type": "plain", "fragment_size": 150, "number_of_fragments": 5}
+        #     }
+        # },
+        # "_source": ["highlight", "id"],
 
     }
     result = es.search(index=index, body=query)
@@ -56,7 +56,15 @@ PUT tibetan-content-dev/_settings
 if __name__ == '__main__':
     import time
 
-    # print(query_es('tibetan-content-dev', 'གྱ་ནོམ་པ'))
+    Obj = {
+        "bool": {
+            "must": [
+                {"match_phrase": {"content": 'གྱ་ནོམ་པ'}},
+                {"term": {"user_id":'b95d552e5add11ebb13ca0a4c56447ad'}},
+            ]
+        }
+    }
+    print(query_es('tibetan-content-dev', Obj))
     start = time.time()
     # print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ', '6146f1047c8f11eb97b2080027ce4314'))
     # print(time.time() - start)

@@ -196,15 +196,16 @@ async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Bo
     returnData = []
     for item in db_self_dict:
         temp = item.dict()
-        queryObj = {"bool": {
-            "must": [
-                {"match_phrase": {"content": item.word}},
-                {"term": {"id": work_file_info[item.work_history_id]}},
-            ]
-        }}
-        es_result = query_es(index=ES_INDEX, queryObj=queryObj)
-        temp['sentence'] = es_result['hits']['hits'][0]['highlight']['content'] if es_result['hits']['total'][
-            'value'] else []
+        # queryObj = {"bool": {
+        #     "must": [
+        #         {"match_phrase": {"content": item.word}},
+        #         {"term": {"id": work_file_info[item.work_history_id]}},
+        #     ]
+        # }}
+        # es_result = query_es(index=ES_INDEX, queryObj=queryObj)
+        # temp['sentence'] = es_result['hits']['hits'][0]['highlight']['content'] if es_result['hits']['total'][
+        #     'value'] else []
+        temp['sentence'] = []
         returnData.append(temp)
     return {'data': returnData, 'total': count}
 
