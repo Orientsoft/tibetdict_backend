@@ -140,7 +140,7 @@ async def work_result(ids: List[str] = Body(..., embed=True),
     for r in db_his:
         # r['word'].endswith('点') 加上点
         if not r['word'].endswith('་'):
-            r['word'] = f"{r['word']}"
+            r['word'] = f"{r['word']}་"
         temp_obj[r['word']] = r['total']
     returnArr = []
     if not temp_obj:
@@ -150,7 +150,7 @@ async def work_result(ids: List[str] = Body(..., embed=True),
     for item in db_his:
         # item['word'].endswith('点') 加上点
         if not item['word'].endswith('་'):
-            item['word'] = f"{item['word']}"
+            item['word'] = f"{item['word']}་"
         item['color'] = color_result.get(item['total'])
         returnArr.append(item)
     temp_color = color_result.values()
@@ -278,6 +278,8 @@ async def post_work_result_export(
                 word_result[y['word']] = word_result[y['word']] + y['count']
     words = []
     for key, value in word_result.items():
+        if not key.endswith('་'):
+            key = f"{key}་"
         words.append(f'{key}, {value}\n')
     if not word_result:
         words.append('')
