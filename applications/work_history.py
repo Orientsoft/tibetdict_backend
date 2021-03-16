@@ -266,26 +266,27 @@ async def post_work_result_export(
 ):
     data_result = await get_work_history_without_limit(conn=db, query={'id': {'$in': ids}})
     word_result = {}
-    # 拼装词目为键，频率为值得字典，重复词目频率相加
+    # 拼装词目为键，值为{'count': int, 'nature': str}的字典，重复词目频率相加
     for x in data_result:
         for y in x.o_result:
             # 筛选颜色
             if y['color'] not in color:
                 continue
             if y['word'] not in word_result:
-                word_result[y['word']] = y['count']
+                word_result[y['word']] = {'count': y['count'], 'nature': y['nature']}
             else:
                 word_result[y['word']] = word_result[y['word']] + y['count']
+                word_result[y['word']] = {'count': word_result[y['word']] + y['count'], 'nature': y['nature']}
     words = []
     for key, value in word_result.items():
         if not key.endswith('་'):
             key = f"{key}་"
-        words.append(f'{key}, {value}\n')
+        words.append(f'{key}, {value["count"]}, {value["nature"]}\n')
     if not word_result:
         words.append('')
     else:
         # 按照频率排序
-        words.sort(key=lambda x: int(x.split(',')[1]), reverse=True)
+        words.sort(key=lambda x: int(x.split(', ')[1]), reverse=True)
     if not os.path.exists('temp'):
         os.mkdir('temp')
     file_path = f'temp/stat-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt'
