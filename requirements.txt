@@ -52,3 +52,4 @@ wincertstore==0.2
 zipp==3.4.0
 uvicorn[standard]
 elasticsearch
+aiofiles

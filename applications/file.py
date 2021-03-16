@@ -10,10 +10,13 @@ import re
 import platform
 import shutil
 import uuid
+import json
 
 from model.user import User
 from common.jwt import get_current_user_authorizer
 from common.mongodb import AsyncIOMotorClient, get_database
+from fastapi_plugins import depends_redis
+from aioredis import Redis
 
 from crud.file import create_file, get_file_list, count_file_by_query, delete_file, update_file, get_file
 from crud.work_history import count_work_history_by_query
@@ -23,6 +26,7 @@ from common.common import contenttomd5
 from common.search import bulk, delete_es_by_fileid
 from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
+from common.cache import get_cache, set_cache, del_cache
 
 router = APIRouter()
 _platform = platform.system().lower()
@@ -164,7 +168,7 @@ async def patch_file(file_id: str = Body(...),
 @router.delete('/file', tags=['file'], name='删除文件')
 async def del_file(file_id: str,
                    user: User = Depends(get_current_user_authorizer()),
-                   db: AsyncIOMotorClient = Depends(get_database)):
+                   db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)):
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
@@ -180,13 +184,15 @@ async def del_file(file_id: str,
     # 删除es中的数据
     delete_es_by_fileid(index=ES_INDEX, id=file_id)
     await delete_file(db, {'id': file_id, 'user_id': user.id})
+    # 删除tree cache
+    await del_cache(rd, user.id)
     return {'msg': '2002'}
 
 
 @router.post('/file', tags=['file'], name='文件上传')
 async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefix_dir: str = Body(None),
                       user: User = Depends(get_current_user_authorizer()),
-                      db: AsyncIOMotorClient = Depends(get_database)):
+                      db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)):
     attr = file.filename.rsplit('.')[-1]
     if attr not in ['txt', 'docx', 'doc']:
         raise HTTPException(status_code=400, detail='40014')
@@ -296,16 +302,27 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     # 文件指纹
     data.o_hash = contenttomd5(origin_content.encode('utf-8'))
     await create_file(db, data)
+    # 删除tree cache
+    await del_cache(rd, user.id)
     return {'id': data.id}
 
 
 @router.get('/tree', tags=['file'], name='文件目录')
-async def get_my_content(origin: OriginEnum, user: User = Depends(get_current_user_authorizer())):
-    m = MinioUploadPrivate()
-    if origin == OriginEnum.private:
-        return m.list_tree(f'origin/{user.id}/')
-    elif origin == OriginEnum.share:
-        return m.list_tree(f'origin/{SHARE_USER_ID}/')
+async def get_my_content(origin: OriginEnum, user: User = Depends(get_current_user_authorizer()),
+                         rd: Redis = Depends(depends_redis)):
+    cache = await get_cache(rd, user.id if origin == OriginEnum.private else SHARE_USER_ID)
+    if not cache:
+        m = MinioUploadPrivate()
+        if origin == OriginEnum.private:
+            tree_data = m.list_tree(f'origin/{user.id}/')
+        elif origin == OriginEnum.share:
+            tree_data = m.list_tree(f'origin/{SHARE_USER_ID}/')
+        else:
+            raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
+        await set_cache(rd=rd, key=user.id if origin == OriginEnum.private else SHARE_USER_ID, info=tree_data)
+    else:
+        tree_data = cache
+    return tree_data
 
 
 @router.post('/content/file', tags=['file'], name='目录中内容')
@@ -362,16 +379,16 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
     # print(result)
     for r in result['hits']['hits']:
         content = []
-        s = r['_source']['content'].replace(' ','')
+        s = r['_source']['content'].replace(' ', '')
         search_start = s.find(search)
-        search_end = search_start+len(search)
+        search_end = search_start + len(search)
         header = s[0:s.find(search)]
         end = s[search_end:]
         content.append([header, search, end])
         returnObj['data'].append({
             'id': r['_source']['id'],
             'sentence': content,
-            'seq':r['_source']['seq']
+            'seq': r['_source']['seq']
         })
     return returnObj
 

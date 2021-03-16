@@ -3,10 +3,10 @@ import json
 from typing import List
 
 
-async def set_cache(rd: Redis, key: str, info, expire: int = 3600) -> bool:
+async def set_cache(rd: Redis, key: str, info) -> bool:
     try:
         save_info = json.dumps(info, ensure_ascii=False)
-        await rd.set(key, save_info, expire=expire)
+        await rd.set(key, save_info)
         return True
     except:
         return False
