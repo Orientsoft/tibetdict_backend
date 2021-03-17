@@ -23,13 +23,13 @@ from crud.file import create_file, get_file_list, count_file_by_query, delete_fi
 from crud.work_history import count_work_history_by_query
 from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
-from common.common import contenttomd5,tokenize_sentence
+from common.common import contenttomd5, tokenize_sentence
 from common.search import bulk, delete_es_by_fileid
 from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
 from common.cache import get_cache, set_cache, del_cache
 import sys
-from common.search import query_es, get_one_file_content_from_es
+from common.search import query_es
 
 router = APIRouter()
 _platform = platform.system().lower()
@@ -450,14 +450,16 @@ async def search_file_content(file_id: str = Body(...), search: str = Body(...),
         if db_file.user_id != user.id and db_file.user_id != SHARE_USER_ID:
             raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
         returnObj['file_name'] = db_file.file_name
-        count_result = get_one_file_content_from_es(index=ES_INDEX, file_id=file_id, size=0)
-        count = count_result['hits']['total']['value']
-        content_result = get_one_file_content_from_es(index=ES_INDEX, file_id=file_id, size=count)
-        for r in content_result['hits']['hits']:
-            returnObj['content'].append({
-                'seq': r['_source']['seq'],
-                'sentence': r['_source']['content']
-            })
+        m = MinioUploadPrivate()
+        content = m.get_object(db_file.origin)
+        origin_content = content.decode('utf-8')
+        temp_content = tokenize_sentence(origin_content)
+        seq = 1
+        for r in temp_content:
+            if r.replace(' ', '') == '':
+                continue
+            returnObj['content'].append({'seq': seq, 'sentence': r})
+            seq = seq + 1
         queryObj = {
             "bool": {
                 "must": [
@@ -466,7 +468,7 @@ async def search_file_content(file_id: str = Body(...), search: str = Body(...),
                 ]
             }
         }
-        result = query_es(index=ES_INDEX, queryObj=queryObj, start=0, size=count)
+        result = query_es(index=ES_INDEX, queryObj=queryObj, start=0, size=10000)
         for item in result['hits']['hits']:
             returnObj['seq'].append(item['_source']['seq'])
         return returnObj

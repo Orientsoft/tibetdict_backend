@@ -23,18 +23,33 @@ def query_es(index: str, queryObj: dict, start: int = 0, size: int = 10):
     return result
 
 
-def get_one_file_content_from_es(index: str, file_id: str, size: int):
-    query = {
-        "size": size,
-        "sort": [{"seq": "asc"}],
-        "query": {"bool": {
-            "must": [
-                {"term": {"id": file_id}},
-            ]
-        }},
-    }
-    result = es.search(index=index, body=query)
-    return result
+# def count_es_by_fileid(index: str, file_id: str):
+#     query = {
+#         "size": 0,
+#         "sort": [{"seq": "asc"}],
+#         "query": {"bool": {
+#             "must": [
+#                 {"term": {"id": file_id}},
+#             ]
+#         }},
+#     }
+#     result = es.search(index=index, body=query)
+#     return result
+#
+# def get_es_file_by_fileid(index: str, file_id: str):
+#     query = {
+#         "size": 0,
+#         "sort": [{"seq": "asc"}],
+#         "query": {"bool": {
+#             "must": [
+#                 {"term": {"id": file_id}},
+#             ]
+#         }},
+#     }
+#     es.open_point_in_time()
+#     es.close_point_in_time()
+#     result = es.search(index=index, body=query)
+#     return result
 
 
 def bulk(index: str, body: list):
@@ -83,4 +98,5 @@ if __name__ == '__main__':
     # print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ', '6146f1047c8f11eb97b2080027ce4314'))
     # print(time.time() - start)
     # delete_es_by_fileid('tibetan-content-dev','f8e9d6867d5f11ebbe5d080027ce4314')
-    print(get_one_file_content_from_es('tibetan-content', '422a6210863a11ebba21cef0e539f272',5))
+    # print(get_es_file_by_fileid('tibetan-content', '422a6210863a11ebba21cef0e539f272', 5))
+    # print(es.open_point_in_time(index='tibetan-content-dev',keep_alive='1m'))
