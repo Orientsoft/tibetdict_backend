@@ -26,7 +26,7 @@ def query_es(index: str, queryObj: dict, start: int = 0, size: int = 10):
 def get_one_file_content_from_es(index: str, file_id: str, size: int):
     query = {
         "size": size,
-        "sort": [{"seq": "desc"}],
+        "sort": [{"seq": "asc"}],
         "query": {"bool": {
             "must": [
                 {"term": {"id": file_id}},
