@@ -33,3 +33,10 @@ class FileInDB(FileBaseModel):
 class OriginEnum(str, Enum):
     private = 'private'
     share = 'share'
+
+
+class UploadFailedModel(IDModel, CreatedAtModel):
+    path: str
+    user_id: str
+    file_id: str
+    prefix_dir: str = None

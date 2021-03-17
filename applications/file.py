@@ -18,15 +18,17 @@ from common.mongodb import AsyncIOMotorClient, get_database
 from fastapi_plugins import depends_redis
 from aioredis import Redis
 
-from crud.file import create_file, get_file_list, count_file_by_query, delete_file, update_file, get_file
+from crud.file import create_file, get_file_list, count_file_by_query, delete_file, update_file, get_file, \
+    create_upload_failed
 from crud.work_history import count_work_history_by_query
-from model.file import FileCreateModel, OriginEnum
+from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5
 from common.search import bulk, delete_es_by_fileid
 from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
 from common.cache import get_cache, set_cache, del_cache
+import sys
 
 router = APIRouter()
 _platform = platform.system().lower()
@@ -290,12 +292,35 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         actions.append({'id': data.id, 'seq': seq, 'content': r, 'user_id': user.id,
                         'createdAt': datetime.now(tz=timezone).isoformat()})
         seq = seq + 1
+        if sys.getsizeof(actions) >= 524288:
+            result = bulk(index=ES_INDEX, body=actions)
+            if result['errors']:
+                logger.error(str(result))
+                await create_upload_failed(conn=db, item=UploadFailedModel(
+                    path=path,
+                    user_id=user.id,
+                    file_id=data.id,
+                    prefix_dir=prefix_dir
+                ))
+                raise HTTPException(
+                    status_code=HTTP_400_BAD_REQUEST,
+                    detail='40017'
+                )
+            else:
+                actions = []
     result = bulk(index=ES_INDEX, body=actions)
     if result['errors']:
         logger.error(str(result))
-        raise HTTPException(HTTP_400_BAD_REQUEST, )
-    else:
-        logger.info(str(result))
+        await create_upload_failed(conn=db, item=UploadFailedModel(
+            path=path,
+            user_id=user.id,
+            file_id=data.id,
+            prefix_dir=prefix_dir
+        ))
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail='40017'
+        )
     # 上传原始文件
     m.commit(origin_content.encode('utf-8'), data.origin)
     # parsed_content = re.sub(r"།(\s*)།", r"།།\r\n", origin_content)

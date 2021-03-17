@@ -1,7 +1,7 @@
 from common.mongodb import AsyncIOMotorClient
 from typing import Optional
-from model.file import FileInDB, FileCreateModel
-from config import database_name, file_collection_name
+from model.file import FileInDB, FileCreateModel, UploadFailedModel
+from config import database_name, file_collection_name, upload_failed_collection_name
 
 
 async def get_file(conn: AsyncIOMotorClient, query: Optional[dict]) -> FileInDB:
@@ -36,4 +36,9 @@ async def batch_update_file(conn: AsyncIOMotorClient, query: Optional[dict], ite
 
 async def delete_file(conn: AsyncIOMotorClient, query: Optional[dict]):
     conn[database_name][file_collection_name].delete_many(query)
+    return True
+
+
+async def create_upload_failed(conn: AsyncIOMotorClient, item: UploadFailedModel):
+    conn[database_name][upload_failed_collection_name].insert_one(item.dict())
     return True
