@@ -276,8 +276,7 @@ async def post_work_result_export(
             if y['word'] not in word_result:
                 word_result[y['word']] = {'count': y['count'], 'nature': y['nature']}
             else:
-                word_result[y['word']] = word_result[y['word']] + y['count']
-                word_result[y['word']] = {'count': word_result[y['word']] + y['count'], 'nature': y['nature']}
+                word_result[y['word']] = {'count': word_result[y['word']]['count'] + y['count'], 'nature': y['nature']}
     words = []
     for key, value in word_result.items():
         if not key.endswith('་'):
