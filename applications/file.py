@@ -33,6 +33,9 @@ import sys
 router = APIRouter()
 _platform = platform.system().lower()
 
+class UploadError(Exception):
+    def __init__(self):
+        self.msg = '40017'
 
 #
 # @router.post('/file', tags=['file'], name='文档上传')
@@ -230,87 +233,82 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         is_check=False,
         tags=subpath.split('/')[0:2:] if subpath else []  # 前两级目录作为分类
     )
-    if prefix_dir:
-        complete_path = f'{prefix_dir}/{path}'
-    else:
-        complete_path = path
+    try:
+        if prefix_dir:
+            complete_path = f'{prefix_dir}/{path}'
+        else:
+            complete_path = path
 
-    # 原始文件
-    data.origin = f'origin/{user.id}/{complete_path}'
-    data.parsed = None
-    # 查重
-    result = await get_file(conn=db, query={'origin': data.origin})
-    if result:
-        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40013')
-    '''
-    1.txt 本地存储，
-    2.docx python-docx转换
-    3.doc 不同平台不同方法，windows暂不支持
-    '''
-    origin_content = None
-    if attr == 'txt':
-        origin_content = file.file.read().decode('utf-8')
-    elif attr in ['docx', 'doc']:
-        # 临时目录 存储到本地
-        if not os.path.exists('temp'):
-            os.mkdir('temp')
-        origin_temp_file_name = f"temp/{data.id}.{attr}"
-        with open(origin_temp_file_name, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # 原始文件
+        data.origin = f'origin/{user.id}/{complete_path}'
+        data.parsed = None
+        # 查重
+        result = await get_file(conn=db, query={'origin': data.origin})
+        if result:
+            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40013')
+        '''
+        1.txt 本地存储，
+        2.docx python-docx转换
+        3.doc 不同平台不同方法，windows暂不支持
+        '''
+        origin_content = None
+        if attr == 'txt':
+            origin_content = file.file.read().decode('utf-8')
+        elif attr in ['docx', 'doc']:
+            # 临时目录 存储到本地
+            if not os.path.exists('temp'):
+                os.mkdir('temp')
+            origin_temp_file_name = f"temp/{data.id}.{attr}"
+            with open(origin_temp_file_name, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
 
-        if attr == 'docx':
-            tmp = []
-            doc_file = docx.Document(origin_temp_file_name)
-            for para in doc_file.paragraphs:
-                tmp.append(para.text)
-            origin_content = '\n'.join(tmp)
-        elif attr == 'doc':
-            saveas_txt_file_name = f"temp/{data.id}.txt"
-            if _platform == 'linux':
-                cmd = f"catdoc {origin_temp_file_name} > {saveas_txt_file_name}"
-                os.system(cmd)
-            elif _platform == 'darwin':
-                cmd = f"textutil -convert txt {origin_temp_file_name} -output {saveas_txt_file_name}"
-                os.system(cmd)
-            else:
-                raise HTTPException(status_code=400, detail='40014')
-            with open(saveas_txt_file_name, 'r') as f:
-                origin_content = f.read()
-            os.remove(saveas_txt_file_name)
-        # 删除临时文件
-        os.remove(origin_temp_file_name)
+            if attr == 'docx':
+                tmp = []
+                doc_file = docx.Document(origin_temp_file_name)
+                for para in doc_file.paragraphs:
+                    tmp.append(para.text)
+                origin_content = '\n'.join(tmp)
+            elif attr == 'doc':
+                saveas_txt_file_name = f"temp/{data.id}.txt"
+                if _platform == 'linux':
+                    cmd = f"catdoc {origin_temp_file_name} > {saveas_txt_file_name}"
+                    os.system(cmd)
+                elif _platform == 'darwin':
+                    cmd = f"textutil -convert txt {origin_temp_file_name} -output {saveas_txt_file_name}"
+                    os.system(cmd)
+                else:
+                    raise HTTPException(status_code=400, detail='40014')
+                with open(saveas_txt_file_name, 'r') as f:
+                    origin_content = f.read()
+                os.remove(saveas_txt_file_name)
+            # 删除临时文件
+            os.remove(origin_temp_file_name)
 
-    m = MinioUploadPrivate()
-    # es bulk操作
-    actions = []
-    temp_content = origin_content.split('།')
-    seq = 1
-    for r in temp_content:
-        if r.replace(' ', '') == '':
-            continue
-        actions.append({'index': {'_index': ES_INDEX, '_id': uuid.uuid1().hex}})
-        actions.append({'id': data.id, 'seq': seq, 'content': r, 'user_id': user.id,
-                        'createdAt': datetime.now(tz=timezone).isoformat()})
-        seq = seq + 1
-        if sys.getsizeof(actions) >= 524288:
-            result = bulk(index=ES_INDEX, body=actions)
-            if result['errors']:
-                logger.error(str(result))
-                await create_upload_failed(conn=db, item=UploadFailedModel(
-                    path=path,
-                    user_id=user.id,
-                    file_id=data.id,
-                    prefix_dir=prefix_dir
-                ))
-                raise HTTPException(
-                    status_code=HTTP_400_BAD_REQUEST,
-                    detail='40017'
-                )
-            else:
-                actions = []
-    result = bulk(index=ES_INDEX, body=actions)
-    if result['errors']:
-        logger.error(str(result))
+        m = MinioUploadPrivate()
+        # es bulk操作
+        actions = []
+        temp_content = origin_content.split('།')
+        seq = 1
+        for r in temp_content:
+            if r.replace(' ', '') == '':
+                continue
+            actions.append({'index': {'_index': ES_INDEX, '_id': uuid.uuid1().hex}})
+            actions.append({'id': data.id, 'seq': seq, 'content': r, 'user_id': user.id,
+                            'createdAt': datetime.now(tz=timezone).isoformat()})
+            seq = seq + 1
+            if sys.getsizeof(actions) >= 524288:
+                result = bulk(index=ES_INDEX, body=actions)
+                if result['errors']:
+                    logger.error(str(result))
+                    raise UploadError
+                else:
+                    actions = []
+        result = bulk(index=ES_INDEX, body=actions)
+        if result['errors']:
+            logger.error(str(result))
+            raise UploadError
+    except Exception as e:
+        logger.error(str(e))
         await create_upload_failed(conn=db, item=UploadFailedModel(
             path=path,
             user_id=user.id,
