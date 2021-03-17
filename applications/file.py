@@ -23,19 +23,22 @@ from crud.file import create_file, get_file_list, count_file_by_query, delete_fi
 from crud.work_history import count_work_history_by_query
 from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
-from common.common import contenttomd5
+from common.common import contenttomd5,tokenize_sentence
 from common.search import bulk, delete_es_by_fileid
 from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
 from common.cache import get_cache, set_cache, del_cache
 import sys
+from common.search import query_es, get_one_file_content_from_es
 
 router = APIRouter()
 _platform = platform.system().lower()
 
+
 class UploadError(Exception):
     def __init__(self):
         self.msg = '40017'
+
 
 #
 # @router.post('/file', tags=['file'], name='文档上传')
@@ -287,7 +290,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         m = MinioUploadPrivate()
         # es bulk操作
         actions = []
-        temp_content = origin_content.split('།')
+        temp_content = tokenize_sentence(origin_content)
         seq = 1
         for r in temp_content:
             if r.replace(' ', '') == '':
@@ -380,7 +383,6 @@ async def get_content_file(origin: OriginEnum = Body(...), path: str = Body(None
 async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), page: int = Body(1),
                       limit: int = Body(20),
                       user: User = Depends(get_current_user_authorizer())):
-    from common.search import query_es
     start = (page - 1) * limit
     try:
         queryObj = {
@@ -415,6 +417,7 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
         })
     return returnObj
 
+
 # @router.get('/file/tokenize', tags=['file'], name='文件自动分词')
 # async def tokenize(file_id: str,
 #                    user: User = Depends(get_current_user_authorizer()),
@@ -428,3 +431,45 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
 #     content = m.get_object(db_file.parsed)
 #     parsed_content = tokenize_words(content.decode('utf-8'))
 #     return {'data': parsed_content, 'file_name': db_file.file_name}
+
+
+@router.post('/file/search', tags=['file'], name='搜索某一文件内容')
+async def search_file_content(file_id: str = Body(...), search: str = Body(...),
+                              user: User = Depends(get_current_user_authorizer()),
+                              db: AsyncIOMotorClient = Depends(get_database)):
+    try:
+        returnObj = {
+            'content': [],
+            'seq': [],
+            'file_name': ''
+        }
+        db_file = await get_file(db, {'id': file_id})
+        if not db_file:
+            raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
+        # 既不是自己的文件，且不是共享文件
+        if db_file.user_id != user.id and db_file.user_id != SHARE_USER_ID:
+            raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+        returnObj['file_name'] = db_file.file_name
+        count_result = get_one_file_content_from_es(index=ES_INDEX, file_id=file_id, size=0)
+        count = count_result['hits']['total']['value']
+        content_result = get_one_file_content_from_es(index=ES_INDEX, file_id=file_id, size=count)
+        for r in content_result['hits']['hits']:
+            returnObj['content'].append({
+                'seq': r['_source']['seq'],
+                'sentence': r['_source']['content']
+            })
+        queryObj = {
+            "bool": {
+                "must": [
+                    {"match_phrase": {"content": search}},
+                    {"term": {"id": file_id}},
+                ]
+            }
+        }
+        result = query_es(index=ES_INDEX, queryObj=queryObj, start=0, size=count)
+        for item in result['hits']['hits']:
+            returnObj['seq'].append(item['_source']['seq'])
+        return returnObj
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40017')

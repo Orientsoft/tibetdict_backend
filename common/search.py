@@ -23,6 +23,20 @@ def query_es(index: str, queryObj: dict, start: int = 0, size: int = 10):
     return result
 
 
+def get_one_file_content_from_es(index: str, file_id: str, size: int):
+    query = {
+        "size": size,
+        "sort": [{"seq": "desc"}],
+        "query": {"bool": {
+            "must": [
+                {"term": {"id": file_id}},
+            ]
+        }},
+    }
+    result = es.search(index=index, body=query)
+    return result
+
+
 def bulk(index: str, body: list):
     es.indices.create(index=index, ignore=400)
     result = es.bulk(body=body, request_timeout=60)
@@ -60,12 +74,13 @@ if __name__ == '__main__':
         "bool": {
             "must": [
                 {"match_phrase": {"content": 'གྱ་ནོམ་པ'}},
-                {"term": {"user_id":'b95d552e5add11ebb13ca0a4c56447ad'}},
+                {"term": {"user_id": 'b95d552e5add11ebb13ca0a4c56447ad'}},
             ]
         }
     }
-    print(query_es('tibetan-content-dev', Obj))
+    # print(query_es('tibetan-content-dev', Obj))
     start = time.time()
     # print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ', '6146f1047c8f11eb97b2080027ce4314'))
     # print(time.time() - start)
     # delete_es_by_fileid('tibetan-content-dev','f8e9d6867d5f11ebbe5d080027ce4314')
+    print(get_one_file_content_from_es('tibetan-content', '422a6210863a11ebba21cef0e539f272',5))
