@@ -265,28 +265,48 @@ async def post_work_result_export(
         user: User = Depends(get_current_user_authorizer(required=True)),
         db: AsyncIOMotorClient = Depends(get_database)
 ):
-    data_result = await get_work_history_without_limit(conn=db, query={'id': {'$in': ids}})
-    word_result = {}
-    # 拼装词目为键，值为{'count': int, 'nature': str}的字典，重复词目频率相加
-    for x in data_result:
-        for y in x.o_result:
-            # 筛选颜色
-            if y['color'] not in color:
-                continue
-            if y['word'] not in word_result:
-                word_result[y['word']] = {'count': y['count'], 'nature': y['nature']}
-            else:
-                word_result[y['word']] = {'count': word_result[y['word']]['count'] + y['count'], 'nature': y['nature']}
+    # data_result = await get_work_history_without_limit(conn=db, query={'id': {'$in': ids}})
+    # word_result = {}
+    # # 拼装词目为键，值为{'count': int, 'nature': str}的字典，重复词目频率相加
+    # for x in data_result:
+    #     for y in x.o_result:
+    #         # 筛选颜色
+    #         if y['color'] not in color:
+    #             continue
+    #         if y['word'] not in word_result:
+    #             word_result[y['word']] = {'count': y['count'], 'nature': y['nature']}
+    #         else:
+    #             word_result[y['word']] = {'count': word_result[y['word']]['count'] + y['count'], 'nature': y['nature']}
+    # words = []
+    # for key, value in word_result.items():
+    #     if not key.endswith('་'):
+    #         key = f"{key}་"
+    #     words.append(f'{key}, {value["count"]}, {value["nature"]}\n')
+    # if not word_result:
+    #     words.append('')
+    # else:
+    #     # 按照频率排序
+    #     words.sort(key=lambda x: int(x.split(', ')[1]), reverse=True)
+
+    db_his = await get_work_history_result_sum(db, {'id': {'$in': ids}, 'work_type': WorkTypeEnum.stat.value})
+    temp_obj = {}
+    for r in db_his:
+        # r['word'].endswith('点') 加上点
+        if not r['word'].endswith('་'):
+            r['word'] = f"{r['word']}་"
+        temp_obj[r['word']] = r['total']
     words = []
-    for key, value in word_result.items():
-        if not key.endswith('་'):
-            key = f"{key}་"
-        words.append(f'{key}, {value["count"]}, {value["nature"]}\n')
-    if not word_result:
-        words.append('')
-    else:
-        # 按照频率排序
-        words.sort(key=lambda x: int(x.split(', ')[1]), reverse=True)
+    if not temp_obj:
+        raise HTTPException(HTTP_400_BAD_REQUEST, '40015')
+    # 计算颜色
+    color_result = colouration(temp_obj)  # {829:0,100:1}
+    for item in db_his:
+        # item['word'].endswith('点') 加上点
+        if not item['word'].endswith('་'):
+            item['word'] = f"{item['word']}་"
+        item['color'] = color_result.get(item['total'])
+        if item['color'] in color:
+            words.append(f"{item['word']}, {item['total']}, {item['nature']}\n")
     if not os.path.exists('temp'):
         os.mkdir('temp')
     file_path = f'temp/stat-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt'
