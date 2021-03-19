@@ -18,7 +18,7 @@ async def post_users(
         user: User = Depends(get_current_user_authorizer(required=True)),
         db: AsyncIOMotorClient = Depends(get_database)
 ):
-    if 0 not in user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40005')
     data_user = await get_user(conn=db, query={'username': username})
     # 用户名重复
@@ -44,7 +44,7 @@ async def set_user_menu(
     data_user = await get_user(conn=db, query={'id': user_id})
     if not data_user:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40002')
-    if 0 in data_user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40005')
     await update_user(conn=db, query={'id': user_id}, item={'role': role})
     return {'msg': '2001'}
@@ -139,7 +139,7 @@ async def get_reset_password(
     data_user = await get_user(conn=db, query={'id': user_id})
     if not data_user:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40002')
-    if 0 in data_user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40005')
     await update_password(conn=db, query={'id': user_id}, password=new_pass)
     return {'msg': '2001'}

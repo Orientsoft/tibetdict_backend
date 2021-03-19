@@ -10,7 +10,7 @@ from model.word_dict import WordStatDictCreateModel, WordStatDictUpdateModel, Di
 from crud.word_dict import create_word_stat_dict, get_word_stat_dict_list, get_word_stat_dict, update_word_stat_dict, \
     count_word_stat_dict_by_query, batch_create_word_stat_dict, remove_word_stat_dict
 from common.cache import del_cache
-from config import WORD_POOL_KEY, NEW_WORD_POOL_KEY
+from config import WORD_POOL_KEY, NEW_WORD_POOL_KEY,SHARE_USER_ID
 from poscode import data as pos_data
 
 router = APIRouter()
@@ -23,7 +23,7 @@ async def add_dict(
         user: User = Depends(get_current_user_authorizer(required=True)),
         db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)
 ):
-    if 0 not in user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     db_w = await get_word_stat_dict(db, {'word': word, 'nature': nature, 'type': type})
     if db_w:
@@ -63,7 +63,7 @@ async def patch_dict(data: WordStatDictUpdateModel = Body(...),
                      user: User = Depends(get_current_user_authorizer(required=True)),
                      db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)
                      ):
-    if 0 not in user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     await update_word_stat_dict(db, {'id': data.id}, {'$set': data.dict(exclude_none=True)})
     # clear cache
@@ -77,7 +77,7 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
                     user: User = Depends(get_current_user_authorizer(required=True)),
                     db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)
                     ):
-    if 0 not in user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     attr = file.filename.rsplit('.')[-1]
     if attr not in ['txt']:
@@ -124,7 +124,7 @@ async def get_dict(type: DictTypeEnum,
                    user: User = Depends(get_current_user_authorizer(required=True)),
                    db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)
                    ):
-    if 0 not in user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     await remove_word_stat_dict(db, {'type': type})
     # clear cache
