@@ -70,3 +70,8 @@ async def get_work_history_result_sum(conn: AsyncIOMotorClient, query: Optional[
         'nature': x['_id']['nature'],
         'total': x['total']
     } async for x in result]
+
+
+async def get_work_history_id(conn: AsyncIOMotorClient, query: Optional[dict]):
+    result = conn[database_name][work_history_collection_name].find(query, {'id': 1, '_id': 0})
+    return [x['id'] async for x in result]

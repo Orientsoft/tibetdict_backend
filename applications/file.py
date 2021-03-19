@@ -20,7 +20,7 @@ from aioredis import Redis
 
 from crud.file import create_file, get_file_list, count_file_by_query, delete_file, update_file, get_file, \
     create_upload_failed
-from crud.work_history import count_work_history_by_query
+from crud.work_history import count_work_history_by_query, get_work_history_id
 from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5, tokenize_sentence
@@ -475,3 +475,23 @@ async def search_file_content(file_id: str = Body(...), search: str = Body(...),
     except Exception as e:
         logger.error(e)
         raise HTTPException(HTTP_400_BAD_REQUEST, '40017')
+
+
+@router.post('/file/path/work_id', tags=['file'], name='某个目录中所有文件所属词频统计的的work_id')
+async def get_work_id(origin: OriginEnum = Body(...), paths: List = Body(...),
+                      user: User = Depends(get_current_user_authorizer()),
+                      db: AsyncIOMotorClient = Depends(get_database)):
+    m = MinioUploadPrivate()
+    if origin == OriginEnum.private:
+        user_id = user.id
+    else:
+        user_id = SHARE_USER_ID
+    condition = []
+    for p in paths:
+        comp_path = f'^origin/{user_id}{p}'
+        regx = re.compile(comp_path, re.IGNORECASE)
+        condition.append({'origin': {'$regex': regx}})
+    work_id = await get_work_history_id(db, {'$or': condition, 'o_status': 1, 'work_type': 'stat'})
+    return {
+        'data': work_id
+    }
