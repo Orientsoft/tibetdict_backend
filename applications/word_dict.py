@@ -10,7 +10,7 @@ from model.word_dict import WordStatDictCreateModel, WordStatDictUpdateModel, Di
 from crud.word_dict import create_word_stat_dict, get_word_stat_dict_list, get_word_stat_dict, update_word_stat_dict, \
     count_word_stat_dict_by_query, batch_create_word_stat_dict, remove_word_stat_dict
 from common.cache import del_cache
-from config import WORD_POOL_KEY, NEW_WORD_POOL_KEY,SHARE_USER_ID
+from config import WORD_POOL_KEY, NEW_WORD_POOL_KEY, SHARE_USER_ID
 from poscode import data as pos_data
 
 router = APIRouter()
@@ -101,6 +101,9 @@ async def batch_add(file: UploadFile = File(...), type: DictTypeEnum = Body(...,
         #     continue
         # 词性替换为码表id
         nature = pos_dict.get(nature[3:], nature)
+        # word处理,如果末尾不为་   , 末尾则加上་
+        if not word.endswith('་'):
+            word = f'{word}་'
         data = WordStatDictCreateModel(
             word=word,
             nature=nature,

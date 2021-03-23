@@ -135,6 +135,10 @@ async def get_my_file(user_id: str = None, search: str = None, is_check: bool = 
 async def get_file_content(file_id: str,
                            user: User = Depends(get_current_user_authorizer()),
                            db: AsyncIOMotorClient = Depends(get_database)):
+    returnObj = {
+        'content': [],
+        'file_name': ''
+    }
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
@@ -142,12 +146,20 @@ async def get_file_content(file_id: str,
     if db_file.user_id != user.id and db_file.user_id != SHARE_USER_ID:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     m = MinioUploadPrivate()
-    content = m.get_object(db_file.origin)
-    return {'data': content.decode('utf-8'), 'file_name': db_file.file_name}
+    content = m.get_object(db_file.parsed or db_file.origin)
+    temp_content = tokenize_sentence(content.decode('utf-8'))
+    seq = 1
+    for r in temp_content:
+        if r.replace(' ', '') == '':
+            continue
+        returnObj['content'].append({'seq': seq, 'sentence': r})
+        seq = seq + 1
+    returnObj['file_name'] = db_file.file_name
+    return returnObj
 
 
 @router.patch('/file', tags=['file'], name='修改文件')
-async def patch_file(file_id: str = Body(...),
+async def patch_file(file_id: str = Body(...), content: str = Body(None), is_check: bool = Body(None),
                      book_name: str = Body(None),
                      author: str = Body(None),
                      version: str = Body(None),
@@ -161,6 +173,16 @@ async def patch_file(file_id: str = Body(...),
     if db_file.user_id != user.id:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
+    if is_check is not None:
+        update_obj['is_check'] = is_check
+    if content is not None:
+        m = MinioUploadPrivate()
+        # 上传文件
+        db_file.parsed = db_file.origin.replace('origin', 'parsed', 1)
+        m.commit(content.encode('utf-8'), db_file.parsed)
+        new_hash = contenttomd5(content.encode('utf-8'))
+        update_obj['p_hash'] = new_hash
+        update_obj['parsed'] = db_file.parsed
     if book_name:
         update_obj['book_name'] = book_name
     if author:
