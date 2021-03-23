@@ -7,6 +7,7 @@ from enum import Enum
 class DictTypeEnum(str, Enum):
     stat = 'stat'
     used = 'used'
+    word = 'word'
 
 
 class WordStatDictBaseModel(BaseModel):
