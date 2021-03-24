@@ -369,19 +369,18 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
     return returnObj
 
 
-@router.get('/file/tokenize', tags=['file'], name='文件自动分词')
-async def tokenize(file_id: str, is_async: bool = False,
+@router.post('/file/tokenize', tags=['file'], name='文件自动分词')
+async def tokenize(file_ids: List[str] = Body(...), is_async: bool = Body(False),
                    user: User = Depends(get_current_user_authorizer()),
                    db: AsyncIOMotorClient = Depends(get_database)):
-    db_file = await get_file(db, {'id': file_id})
-    if not db_file:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
-    if db_file.user_id != user.id and 0 not in user.role:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
-    resp = celery_app.send_task('worker:origin_tokenize', args=[file_id], queue='tibetan',
-                                routing_key='tibetan')
-    if is_async is False:
-        resp = resp.get(timeout=300)
+    data_file = await get_file_list(db, {'id': {'$in': file_ids}, 'is_check': False})
+    for db_file in data_file:
+        if db_file.user_id != user.id and user.id != SHARE_USER_ID:
+            continue
+        resp = celery_app.send_task('worker:origin_tokenize', args=[db_file.id], queue='tibetan',
+                                    routing_key='tibetan')
+        if is_async is False and len(file_ids) == 1:
+            resp = resp.get(timeout=300)
     return {'msg': '2001'}
 
 
