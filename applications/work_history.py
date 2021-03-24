@@ -184,6 +184,8 @@ async def work_new_result(ids: List[str] = Body(..., embed=True), page: int = Bo
                           db: AsyncIOMotorClient = Depends(get_database)):
     query_obj = {'work_history_id': {'$in': ids}, 'user_id': user.id}
     if search is not None:
+        if not search.endswith('་'):
+            search = f'{search}་'
         search = re.compile(re.escape(search))
         query_obj['$or'] = [{'word': {'$regex': search}}]
     db_self_dict = await get_self_dict_list(db, query_obj, page, limit)
