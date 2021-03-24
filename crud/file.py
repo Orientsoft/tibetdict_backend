@@ -15,7 +15,7 @@ async def create_file(conn: AsyncIOMotorClient, data: FileCreateModel) -> str:
 
 
 async def get_file_list(conn: AsyncIOMotorClient, query: Optional[dict]):
-    result = conn[database_name][file_collection_name].find(query)
+    result = conn[database_name][file_collection_name].find(query).sort([('createdAt', -1)])
     return [FileInDB(**x) async for x in result]
 
 
