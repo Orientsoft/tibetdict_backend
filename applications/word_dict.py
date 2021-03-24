@@ -50,6 +50,8 @@ async def get_dict(type: DictTypeEnum, search: str = None, page: int = 1, limit:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     query_obj = {'type': type}
     if search is not None:
+        if not search.endswith('་'):
+            search = f'{search}་'
         query_obj['$or'] = [{'word': search}, {'nature': search}]
     if is_exclude is not None:
         query_obj['is_exclude'] = is_exclude
