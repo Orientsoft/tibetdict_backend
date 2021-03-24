@@ -30,4 +30,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: reg.mooplab.com/tibetan-dict/worker:v0.1.7
+          tags: reg.mooplab.com/tibetan-dict/backend:latest
