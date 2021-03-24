@@ -9,25 +9,15 @@ jobs:
   buildx:
     runs-on: ubuntu-latest
     steps:
-      - 
-	name: Checkout
+
+      - name: Checkout
         uses: actions/checkout@v2
 
-      - 
-	name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
-        with:
-          driver-opts: network=host
 
-#      - name: Login to Mooplab Harbor
-#        uses: docker/login-action@v1
-#        with:
-#          registry: reg.mooplab.com
-#          username: ${{ secrets.DOCKER_USERNAME}}
-#          password: ${{ secrets.DOCKER_PASSWORD}}
-      -
-        name: Login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v1 
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
