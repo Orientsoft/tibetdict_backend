@@ -377,6 +377,7 @@ async def tokenize(file_ids: List[str] = Body(...), is_async: bool = Body(False)
     for db_file in data_file:
         if db_file.user_id != user.id and user.id != SHARE_USER_ID:
             continue
+        await update_file(db, {'id': db_file.id}, {'$set': {'tokenize_status':'0'}})
         resp = celery_app.send_task('worker:origin_tokenize', args=[db_file.id], queue='tibetan',
                                     routing_key='tibetan')
         if is_async is False and len(file_ids) == 1:

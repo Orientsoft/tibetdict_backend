@@ -12,6 +12,7 @@ class FileBaseModel(BaseModel):
     last_new: str = None
     origin: str = None
     parsed: str = None
+    tokenize_status: str = None
     o_hash: str = None
     p_hash: str = None
     book_name: str = None
