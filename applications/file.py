@@ -31,6 +31,7 @@ from common.cache import get_cache, set_cache, del_cache
 import sys
 from common.search import query_es
 from common.worker import celery_app
+from model.work_history import WorkTypeEnum
 
 router = APIRouter()
 _platform = platform.system().lower()
@@ -377,7 +378,7 @@ async def tokenize(file_ids: List[str] = Body(...), is_async: bool = Body(False)
     for db_file in data_file:
         if db_file.user_id != user.id and user.id != SHARE_USER_ID:
             continue
-        await update_file(db, {'id': db_file.id}, {'$set': {'tokenize_status':'0'}})
+        await update_file(db, {'id': db_file.id}, {'$set': {'tokenize_status': '0'}})
         resp = celery_app.send_task('worker:origin_tokenize', args=[db_file.id], queue='tibetan',
                                     routing_key='tibetan')
         if is_async is False and len(file_ids) == 1:
@@ -430,7 +431,7 @@ async def search_file_content(file_id: str = Body(...), search: str = Body(...),
 
 
 @router.post('/file/path/work_id', tags=['file'], name='某个目录中所有文件所属词频统计的的work_id')
-async def get_work_id(origin: OriginEnum = Body(...), paths: List = Body(...),
+async def get_work_id(origin: OriginEnum = Body(...), paths: List = Body(...), type: WorkTypeEnum = Body(...),
                       user: User = Depends(get_current_user_authorizer()),
                       db: AsyncIOMotorClient = Depends(get_database)):
     m = MinioUploadPrivate()
@@ -443,7 +444,7 @@ async def get_work_id(origin: OriginEnum = Body(...), paths: List = Body(...),
         comp_path = f'^origin/{user_id}{p}'
         regx = re.compile(comp_path, re.IGNORECASE)
         condition.append({'origin': {'$regex': regx}})
-    work_id = await get_work_history_id(db, {'$or': condition, 'o_status': 1, 'work_type': 'stat'})
+    work_id = await get_work_history_id(db, {'$or': condition, 'o_status': 1, 'work_type': type})
     return {
         'data': work_id
     }
