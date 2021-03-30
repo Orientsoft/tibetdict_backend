@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File
 from starlette.status import HTTP_400_BAD_REQUEST
+from fastapi.responses import FileResponse
 from io import BytesIO
 from typing import List
 from loguru import logger
@@ -21,6 +22,7 @@ from aioredis import Redis
 from crud.file import create_file, get_file_list, count_file_by_query, delete_file, update_file, get_file, \
     create_upload_failed
 from crud.work_history import count_work_history_by_query, get_work_history_id
+from crud.word_dict import count_word_stat_dict_by_query, get_word_stat_dict_list
 from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5, tokenize_sentence
@@ -448,3 +450,99 @@ async def get_work_id(origin: OriginEnum = Body(...), paths: List = Body(...), t
     return {
         'data': work_id
     }
+
+
+@router.post('/file/tokenize/export', tags=['file'], name='辅助分词结果导出')
+async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new'),
+                               user: User = Depends(get_current_user_authorizer(required=True)),
+                               db: AsyncIOMotorClient = Depends(get_database)
+                               ):
+    m = MinioUploadPrivate()
+    # 所有词
+    words = []
+    data_file = await get_file_list(db, {'id': {'$in': ids}, 'is_check': True})
+    for db_file in data_file:
+        if db_file.user_id != user.id and user.id != SHARE_USER_ID:
+            continue
+        try:
+            content = m.get_object(db_file.parsed)
+        except:
+            continue
+        temp_content = content.decode('utf-8').replace('\r', '').replace('\n', '').replace('\t', ' ').split(' ')
+        words += temp_content
+    # 新词词库
+    count = await count_word_stat_dict_by_query(db, {'type': 'used'})
+    db_word_data = await get_word_stat_dict_list(db, {'type': 'used'}, 1, count)
+    db_words = []
+    for d in db_word_data:
+        db_words.append(d.word)
+    if type == 'new':
+        export_word_list = list(set(words).difference(set(db_words)))
+    else:
+        export_word_list = list(set(words))
+    if not os.path.exists('temp'):
+        os.mkdir('temp')
+    file_path = f'temp/tokenize-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt'
+    with open(file_path, 'w+', encoding='utf-8') as f:
+        for w in export_word_list:
+            f.writelines(f"{w}\n")
+    headers = {'content-type': 'text/plain'}
+    return FileResponse(file_path, headers=headers,
+                        filename=f'tokenize-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt')
+
+
+@router.post('/file/once', tags=['file'], name='文件上传获取内容')
+async def upload_file_get_content(file: UploadFile = File(...),
+                                  user: User = Depends(get_current_user_authorizer()),
+                                  db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)):
+    attr = file.filename.rsplit('.')[-1]
+    if attr not in ['txt', 'docx', 'doc']:
+        raise HTTPException(status_code=400, detail='40014')
+
+    try:
+        '''
+        1.txt 本地存储，
+        2.docx python-docx转换
+        3.doc 不同平台不同方法，windows暂不支持
+        '''
+        temp_id = uuid.uuid1().hex
+        origin_content = None
+        if attr == 'txt':
+            origin_content = file.file.read().decode('utf-8')
+        elif attr in ['docx', 'doc']:
+            # 临时目录 存储到本地
+            if not os.path.exists('temp'):
+                os.mkdir('temp')
+            origin_temp_file_name = f"temp/{temp_id}.{attr}"
+            with open(origin_temp_file_name, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+
+            if attr == 'docx':
+                tmp = []
+                doc_file = docx.Document(origin_temp_file_name)
+                for para in doc_file.paragraphs:
+                    tmp.append(para.text)
+                origin_content = '\n'.join(tmp)
+            elif attr == 'doc':
+                saveas_txt_file_name = f"temp/{temp_id}.txt"
+                if _platform == 'linux':
+                    cmd = f"catdoc {origin_temp_file_name} > {saveas_txt_file_name}"
+                    os.system(cmd)
+                elif _platform == 'darwin':
+                    cmd = f"textutil -convert txt {origin_temp_file_name} -output {saveas_txt_file_name}"
+                    os.system(cmd)
+                else:
+                    raise HTTPException(status_code=400, detail='40014')
+                with open(saveas_txt_file_name, 'r') as f:
+                    origin_content = f.read()
+                os.remove(saveas_txt_file_name)
+            # 删除临时文件
+            os.remove(origin_temp_file_name)
+        return {'data': origin_content}
+
+    except Exception as e:
+        logger.error(str(e))
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail='40014'
+        )
