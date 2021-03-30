@@ -337,6 +337,8 @@ async def word_sort(content: List = Body(..., embed=True),
     result = []
     fail_result = []
     for word in content:
+        if not word:
+            continue
         word = word.strip()
         single_words = word.split('་')
         temp_index = []
