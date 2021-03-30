@@ -18,6 +18,7 @@ from crud.work_history import create_work_history, get_work_history_list, count_
     get_work_history, get_work_history_result_sum, update_work_history, delete_work_history, \
     get_work_history_without_limit
 from crud.self_dict import count_self_dict_by_query, get_self_dict_list, delete_self_dict, create_self_dict
+from crud.word_dict import get_word_stat_dict_list, count_word_stat_dict_by_query
 from common.worker import celery_app
 from common.utils import colouration
 from common.search import query_es
@@ -317,3 +318,40 @@ async def post_work_result_export(
     headers = {'content-type': 'text/plain'}
     return FileResponse(file_path, headers=headers,
                         filename=f'stat-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt')
+
+
+def by_index(t):
+    return (t['ind'])
+
+
+@router.post('/word/sort', tags=['work'], name='藏语排序')
+async def word_sort(content: List = Body(..., embed=True),
+                    user: User = Depends(get_current_user_authorizer()),
+                    db: AsyncIOMotorClient = Depends(get_database)):
+    count = await count_word_stat_dict_by_query(db, {'type': 'word'})
+    word_index_data = await get_word_stat_dict_list(db, {'type': 'word'}, 1, count)
+    index_obj = {}
+    for w in word_index_data:
+        index_obj[w.word] = w.nature
+
+    result = []
+    fail_result = []
+    for word in content:
+        word = word.strip()
+        single_words = word.split('་')
+        temp_index = []
+        for s in single_words:
+            if not s:
+                continue
+            ind = index_obj.get(s, None)
+            temp_index.append(ind)
+        temp_obj = {'ind': temp_index, 'word': word}
+        if None in temp_index:
+            fail_result.append(temp_obj)
+        else:
+            result.append(temp_obj)
+    result = sorted(result, key=by_index)
+    return {
+        'success': list(map(lambda x: x['word'], result)),
+        'fail': list(map(lambda x: x['word'], fail_result))
+    }

@@ -470,6 +470,7 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
             continue
         temp_content = content.decode('utf-8').replace('\r', '').replace('\n', '').replace('\t', ' ').split(' ')
         words += temp_content
+    # TODO words 去除末尾的|
     # 新词词库
     count = await count_word_stat_dict_by_query(db, {'type': 'used'})
     db_word_data = await get_word_stat_dict_list(db, {'type': 'used'}, 1, count)
@@ -494,7 +495,7 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
 @router.post('/file/once', tags=['file'], name='文件上传获取内容')
 async def upload_file_get_content(file: UploadFile = File(...),
                                   user: User = Depends(get_current_user_authorizer()),
-                                  db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(depends_redis)):
+                                  db: AsyncIOMotorClient = Depends(get_database)):
     attr = file.filename.rsplit('.')[-1]
     if attr not in ['txt', 'docx', 'doc']:
         raise HTTPException(status_code=400, detail='40014')
