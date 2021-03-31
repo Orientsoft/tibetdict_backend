@@ -25,7 +25,7 @@ from crud.work_history import count_work_history_by_query, get_work_history_id
 from crud.word_dict import count_word_stat_dict_by_query, get_word_stat_dict_list
 from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
-from common.common import contenttomd5, tokenize_sentence
+from common.common import contenttomd5, tokenize_sentence,judge_word
 from common.search import bulk, delete_es_by_fileid
 from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
@@ -82,7 +82,7 @@ async def get_file_content(file_id: str, is_origin: bool = False,
     for r in temp_content:
         if r.replace(' ', '') == '':
             continue
-        returnObj['content'].append({'seq': seq, 'sentence': r})
+        returnObj['content'].append({'seq': seq, 'sentence': f"{r.strip() }"})
         seq = seq + 1
     returnObj['file_name'] = db_file.file_name
     return returnObj
@@ -470,7 +470,8 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
             continue
         temp_content = content.decode('utf-8').replace('\r', '').replace('\n', '').replace('\t', ' ').split(' ')
         words += temp_content
-    # TODO words 去除末尾的|
+    # 藏语判断
+    words = list(filter(judge_word,words))
     # 新词词库
     count = await count_word_stat_dict_by_query(db, {'type': 'used'})
     db_word_data = await get_word_stat_dict_list(db, {'type': 'used'}, 1, count)

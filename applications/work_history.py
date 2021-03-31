@@ -336,6 +336,8 @@ async def word_sort(content: List = Body(..., embed=True),
 
     result = []
     fail_result = []
+    # 去重
+    content = list(set(content))
     for word in content:
         if not word:
             continue
