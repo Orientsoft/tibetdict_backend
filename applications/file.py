@@ -67,7 +67,8 @@ async def get_file_content(file_id: str, is_origin: bool = False,
                            db: AsyncIOMotorClient = Depends(get_database)):
     returnObj = {
         'content': [],
-        'file_name': ''
+        'file_name': '',
+        'is_check':None
     }
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
@@ -85,6 +86,7 @@ async def get_file_content(file_id: str, is_origin: bool = False,
         returnObj['content'].append({'seq': seq, 'sentence': f"{r.strip()} "})
         seq = seq + 1
     returnObj['file_name'] = db_file.file_name
+    returnObj['is_check'] = db_file.is_check
     return returnObj
 
 
