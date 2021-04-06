@@ -25,7 +25,7 @@ from crud.work_history import count_work_history_by_query, get_work_history_id
 from crud.word_dict import count_word_stat_dict_by_query, get_word_stat_dict_list
 from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
-from common.common import contenttomd5, tokenize_sentence,judge_word
+from common.common import contenttomd5, tokenize_sentence, judge_word
 from common.search import bulk, delete_es_by_fileid
 from config import ES_INDEX, timezone, SHARE_USER_ID
 from datetime import datetime
@@ -68,7 +68,7 @@ async def get_file_content(file_id: str, is_origin: bool = False,
     returnObj = {
         'content': [],
         'file_name': '',
-        'is_check':None
+        'is_check': None
     }
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
@@ -341,11 +341,14 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
                       user: User = Depends(get_current_user_authorizer())):
     start = (page - 1) * limit
     try:
+        if search.endswith('་') or search.endswith('།'):
+            search = search[:-1]
+
         queryObj = {
             "bool": {
                 "must": [
                     # {"match_phrase": {"content": search}},
-                    {"regexp": {"content": {"value":f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
+                    {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
                     {"term": {"user_id": user.id if origin == OriginEnum.private else SHARE_USER_ID}},
                 ]
             }
@@ -418,11 +421,13 @@ async def search_file_content(file_id: str = Body(...), search: str = Body(...),
                 continue
             returnObj['content'].append({'seq': seq, 'sentence': r})
             seq = seq + 1
+        if search.endswith('་') or search.endswith('།'):
+            search = search[:-1]
         queryObj = {
             "bool": {
                 "must": [
                     # {"match_phrase": {"content": search}},
-                    {"regexp": {"content": {"value":f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
+                    {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
                     {"term": {"id": file_id}},
                 ]
             }
@@ -475,7 +480,7 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
         temp_content = content.decode('utf-8').replace('\r', '').replace('\n', '').replace('\t', ' ').split(' ')
         words += temp_content
     # 藏语判断
-    words = list(filter(judge_word,words))
+    words = list(filter(judge_word, words))
     # 新词词库
     count = await count_word_stat_dict_by_query(db, {'type': 'used'})
     db_word_data = await get_word_stat_dict_list(db, {'type': 'used'}, 1, count)
