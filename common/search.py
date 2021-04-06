@@ -80,6 +80,65 @@ PUT tibetan-content-dev/_settings
         "highlight.max_analyzed_offset" : 600000000
     }
 }
+
+PUT /tibetan-sentence
+{
+   "mappings": {
+           "properties": {
+      "content": {
+         "type": "keyword"
+      },
+      "seq" : {
+          "type" : "long"
+      },
+      "createdAt" : {
+          "type" : "date"
+      },
+      "id": {
+         "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+      },
+      "user_id": {
+         "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+      }
+  }
+   }
+}
+
+PUT tibetan-sentence/_settings
+{
+    "index.max_result_window": 20000
+}
+
+GET tibetan-sentence/_settings
+{}
+
+
+GET tibetan-sentence/_mapping
+{}
+
+POST tibetan-sentence-dev/_search/
+{
+   "query": {
+     "bool":{
+       "must":[
+         {"term": {"user_id": "b95d552e5add11ebb13ca0a4c56447ad"}},
+         {"regexp": {"content": {"value":".*ཀྱི[འི|འུ|འོ|ས|ར]?[་|།].*"}}}
+         ]
+     }
+   }
+}
 '''
 
 if __name__ == '__main__':
@@ -88,12 +147,12 @@ if __name__ == '__main__':
     Obj = {
         "bool": {
             "must": [
-                {"match_phrase": {"content": 'གྱ་ནོམ་པ'}},
-                {"term": {"user_id": 'b95d552e5add11ebb13ca0a4c56447ad'}},
+                {"regexp": {"content": {"value":".*ཀྱི[འི|འུ|འོ|ས|ར]?[་|།].*"}}},
+                {"term": {"user_id": 'b95d552e5add11ebb13ca0a4c56447ad'}}
             ]
         }
     }
-    # print(query_es('tibetan-content-dev', Obj))
+    print(query_es('tibetan-content-dev', Obj))
     start = time.time()
     # print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ', '6146f1047c8f11eb97b2080027ce4314'))
     # print(time.time() - start)

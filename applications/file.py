@@ -344,7 +344,8 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
         queryObj = {
             "bool": {
                 "must": [
-                    {"match_phrase": {"content": search}},
+                    # {"match_phrase": {"content": search}},
+                    {"regexp": {"content": {"value":f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
                     {"term": {"user_id": user.id if origin == OriginEnum.private else SHARE_USER_ID}},
                 ]
             }
@@ -420,7 +421,8 @@ async def search_file_content(file_id: str = Body(...), search: str = Body(...),
         queryObj = {
             "bool": {
                 "must": [
-                    {"match_phrase": {"content": search}},
+                    # {"match_phrase": {"content": search}},
+                    {"regexp": {"content": {"value":f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
                     {"term": {"id": file_id}},
                 ]
             }
