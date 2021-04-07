@@ -12,7 +12,8 @@ class FileBaseModel(BaseModel):
     last_new: str = None
     origin: str = None
     parsed: str = None
-    tokenize_status: str = None
+    tokenize_status: str = None  # 0 :进行中，1：成功，2：失败
+    tokenize_user: str = None  # 分词者
     o_hash: str = None
     p_hash: str = None
     book_name: str = None

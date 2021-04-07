@@ -387,7 +387,7 @@ async def tokenize(file_ids: List[str] = Body(...), is_async: bool = Body(False)
         if db_file.user_id != user.id and user.id != SHARE_USER_ID:
             continue
         await update_file(db, {'id': db_file.id}, {'$set': {'tokenize_status': '0'}})
-        resp = celery_app.send_task('worker:origin_tokenize', args=[db_file.id], queue='tibetan',
+        resp = celery_app.send_task('worker:origin_tokenize', args=[db_file.id, user.id], queue='tibetan',
                                     routing_key='tibetan')
         if is_async is False and len(file_ids) == 1:
             resp = resp.get(timeout=300)
@@ -557,3 +557,18 @@ async def upload_file_get_content(file: UploadFile = File(...),
             status_code=HTTP_400_BAD_REQUEST,
             detail='40014'
         )
+
+
+@router.get('/work/tokenize', tags=['work'], name='分词记录')
+async def get_my_tokenize_file(search: str = None,
+                               user: User = Depends(get_current_user_authorizer()),
+                               db: AsyncIOMotorClient = Depends(get_database)):
+    query_obj = {'$or': [{'is_check': True}, {'tokenize_status': '1'}], 'tokenize_user': user.id}
+    if search is not None:
+        query_obj['file_name'] = {'$regex': search}
+    data = await get_file_list(db, query_obj)
+    count = await count_file_by_query(db, query_obj)
+    return {
+        'data': data,
+        'count': count
+    }
