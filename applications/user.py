@@ -90,7 +90,7 @@ async def get_user_list(
         user: User = Depends(get_current_user_authorizer(required=True)),
         db: AsyncIOMotorClient = Depends(get_database)
 ):
-    if 0 not in user.role:
+    if user.id != SHARE_USER_ID:
         raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40005')
     data_user = await get_user_list_by_query_with_page_and_limit(conn=db, query={
         'username': {'$regex': search}} if search else {}, page=page, limit=limit)
