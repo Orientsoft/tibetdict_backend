@@ -261,13 +261,14 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
             actions.append({'id': data.id, 'seq': seq, 'content': r, 'user_id': user.id,
                             'createdAt': datetime.now(tz=timezone).isoformat()})
             seq = seq + 1
-            if sys.getsizeof(actions) >= 524288:
+            if sys.getsizeof(actions) >= 25728:
                 result = bulk(index=ES_INDEX, body=actions)
                 if result['errors']:
                     logger.error(str(result))
                     raise UploadError
                 else:
                     actions = []
+        logger.info(sys.getsizeof(actions))
         result = bulk(index=ES_INDEX, body=actions)
         if result['errors']:
             logger.error(str(result))
