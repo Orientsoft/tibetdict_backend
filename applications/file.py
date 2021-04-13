@@ -194,9 +194,15 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
     )
     try:
         if prefix_dir:
-            complete_path = f'{prefix_dir}/{path}'
+            if subpath:
+                complete_path = f'{prefix_dir}/{subpath}/{data.id}.txt'
+            else:
+                complete_path = f'{prefix_dir}/{data.id}.txt'
         else:
-            complete_path = path
+            if subpath:
+                complete_path = f'{subpath}/{data.id}.txt'
+            else:
+                complete_path = f'{data.id}.txt'
 
         # 原始文件
         data.origin = f'origin/{user.id}/{complete_path}'
