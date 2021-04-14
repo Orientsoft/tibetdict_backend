@@ -142,20 +142,25 @@ POST tibetan-sentence-dev/_search/
 '''
 
 if __name__ == '__main__':
-    import time
-
-    Obj = {
-        "bool": {
-            "must": [
-                {"regexp": {"content": {"value":".*ཀྱི[འི|འུ|འོ|ས|ར]?[་|།].*"}}},
-                {"term": {"user_id": 'b95d552e5add11ebb13ca0a4c56447ad'}}
-            ]
-        }
-    }
-    print(query_es('tibetan-content-dev', Obj))
-    start = time.time()
+    # import time
+    #
+    # Obj = {
+    #     "bool": {
+    #         "must": [
+    #             {"regexp": {"content": {"value":".*ཀྱི[འི|འུ|འོ|ས|ར]?[་|།].*"}}},
+    #             {"term": {"user_id": 'b95d552e5add11ebb13ca0a4c56447ad'}}
+    #         ]
+    #     }
+    # }
+    # print(query_es('tibetan-content-dev', Obj))
+    # start = time.time()
     # print(query_es_file_content('tibetan-content-dev', 'གྱ་ནོམ་པ', '6146f1047c8f11eb97b2080027ce4314'))
     # print(time.time() - start)
     # delete_es_by_fileid('tibetan-content-dev','f8e9d6867d5f11ebbe5d080027ce4314')
     # print(get_es_file_by_fileid('tibetan-content', '422a6210863a11ebba21cef0e539f272', 5))
     # print(es.open_point_in_time(index='tibetan-content-dev',keep_alive='1m'))
+    with open('/Users/wangbilin/Desktop/test.txt','r',errors='ignore') as f:
+        print(f.read())
+    # import codecs
+    # with codecs.open('/Users/wangbilin/Desktop/test.txt', 'r', encoding='utf-8',errors='ignore') as fdata:
+    #     print(fdata.read())

@@ -583,7 +583,7 @@ async def upload_file_get_content(file: UploadFile = File(...),
 async def get_my_tokenize_file(search: str = None,
                                user: User = Depends(get_current_user_authorizer()),
                                db: AsyncIOMotorClient = Depends(get_database)):
-    query_obj = {'$or': [{'is_check': True}, {'tokenize_status': '1'}], 'tokenize_user': user.id}
+    query_obj = {'$or': [{'is_check': True}, {'tokenize_status': {'$in': ['0', '1', '2']}}], 'tokenize_user': user.id}
     if search is not None:
         query_obj['file_name'] = {'$regex': search}
     data = await get_file_list(db, query_obj)
