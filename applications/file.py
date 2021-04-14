@@ -12,6 +12,8 @@ import platform
 import shutil
 import uuid
 import json
+from zipfile import ZipFile
+from bs4 import BeautifulSoup
 
 from model.user import User
 from common.jwt import get_current_user_authorizer
@@ -192,30 +194,31 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
         is_check=False,
         tags=subpath.split('/')[0:2:] if subpath else []  # 前两级目录作为分类
     )
-    try:
-        if prefix_dir:
-            if subpath:
-                complete_path = f'{prefix_dir}/{subpath}/{data.id}.txt'
-            else:
-                complete_path = f'{prefix_dir}/{data.id}.txt'
-        else:
-            if subpath:
-                complete_path = f'{subpath}/{data.id}.txt'
-            else:
-                complete_path = f'{data.id}.txt'
 
-        # 原始文件
-        data.origin = f'origin/{user.id}/{complete_path}'
-        data.parsed = None
-        # 查重
-        result = await get_file(conn=db, query={'origin': data.origin})
-        if result:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40013')
-        '''
-        1.txt 本地存储，
-        2.docx python-docx转换
-        3.doc 不同平台不同方法，windows暂不支持
-        '''
+    if prefix_dir:
+        if subpath:
+            complete_path = f'{prefix_dir}/{subpath}/{data.id}.txt'
+        else:
+            complete_path = f'{prefix_dir}/{data.id}.txt'
+    else:
+        if subpath:
+            complete_path = f'{subpath}/{data.id}.txt'
+        else:
+            complete_path = f'{data.id}.txt'
+
+    # 原始文件
+    data.origin = f'origin/{user.id}/{complete_path}'
+    data.parsed = None
+    # 查重
+    result = await get_file(conn=db, query={'origin': data.origin})
+    if result:
+        raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='40013')
+    '''
+    1.txt 本地存储，
+    2.docx python-docx转换
+    3.doc 不同平台不同方法，windows暂不支持
+    '''
+    try:
         origin_content = None
         if attr == 'txt':
             origin_content = file.file.read().decode('utf-8')
@@ -229,10 +232,20 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
 
             if attr == 'docx':
                 tmp = []
-                doc_file = docx.Document(origin_temp_file_name)
-                for para in doc_file.paragraphs:
-                    tmp.append(para.text)
-                origin_content = '\n'.join(tmp)
+                try:
+                    doc_file = docx.Document(origin_temp_file_name)
+                    for para in doc_file.paragraphs:
+                        tmp.append(para.text)
+                    origin_content = '\n'.join(tmp)
+                except:
+                    tmp = []
+                    document = ZipFile(origin_temp_file_name)
+                    xml = document.read("word/document.xml")
+                    wordObj = BeautifulSoup(xml.decode("utf-8"), features="lxml")
+                    texts = wordObj.findAll("w:t")
+                    for text in texts:
+                        tmp.append(text.text)
+                    origin_content = '\n'.join(tmp)
             elif attr == 'doc':
                 saveas_txt_file_name = f"temp/{data.id}.txt"
                 if _platform == 'linux':
