@@ -104,7 +104,7 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
-    if db_file.user_id != user.id:
+    if db_file.user_id != user.id and db_file.user_id != SHARE_USER_ID:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
     if is_check is not None:
