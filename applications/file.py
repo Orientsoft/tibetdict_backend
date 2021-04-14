@@ -256,7 +256,7 @@ async def upload_file(file: UploadFile = File(...), path: str = Body(...), prefi
                     os.system(cmd)
                 else:
                     raise HTTPException(status_code=400, detail='40014')
-                with open(saveas_txt_file_name, 'r') as f:
+                with open(saveas_txt_file_name, 'r', errors='ignore') as f:
                     origin_content = f.read()
                 os.remove(saveas_txt_file_name)
             # 删除临时文件
