@@ -104,14 +104,21 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
     db_file = await get_file(db, {'id': file_id})
     if not db_file:
         raise HTTPException(HTTP_400_BAD_REQUEST, '40011')
-    if db_file.user_id != user.id and db_file.user_id != SHARE_USER_ID:
-        raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
+    # if db_file.user_id != user.id and db_file.user_id != SHARE_USER_ID:
+    #     raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
-    if is_check is not None:
-        if is_check and content is None and db_file.parsed is None:
+    # 确认校验前提，1.文件本身未校验，2.分词者为空或分词者是本人
+    if is_check is True and db_file.is_check is False and (db_file.tokenize_user is None or db_file.tokenize_user == user.id):
+        # 本次无内容且db中也无内容
+        if content is None and db_file.parsed is None:
             raise HTTPException(HTTP_400_BAD_REQUEST, '40018')
         update_obj['is_check'] = is_check
-    if content is not None:
+        update_obj['tokenize_user'] = user.id
+    # 否认校验,db中是true，且原有是自己
+    if is_check is False and db_file.is_check is True and db_file.tokenize_user == user.id:
+        update_obj['is_check'] = is_check
+    # 保存内容
+    if content is not None and (db_file.tokenize_user is None or db_file.tokenize_user == user.id):
         m = MinioUploadPrivate()
         # 上传文件
         db_file.parsed = db_file.origin.replace('origin', 'parsed', 1)
@@ -119,13 +126,14 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
         new_hash = contenttomd5(content.encode('utf-8'))
         update_obj['p_hash'] = new_hash
         update_obj['parsed'] = db_file.parsed
-    if book_name:
+    # 以下内容，本人可修改
+    if book_name and db_file.user_id == user.id:
         update_obj['book_name'] = book_name
-    if author:
+    if author and db_file.user_id == user.id:
         update_obj['author'] = author
-    if version:
+    if version and db_file.user_id == user.id:
         update_obj['version'] = version
-    if tags:
+    if tags and db_file.user_id == user.id:
         update_obj['tags'] = tags
     await update_file(db, {'id': file_id}, {'$set': update_obj})
     return {'msg': '2002'}
@@ -404,9 +412,9 @@ async def tokenize(file_ids: List[str] = Body(...), is_async: bool = Body(False)
                    db: AsyncIOMotorClient = Depends(get_database)):
     data_file = await get_file_list(db, {'id': {'$in': file_ids}, 'is_check': False})
     for db_file in data_file:
-        if db_file.user_id != user.id and user.id != SHARE_USER_ID:
+        if db_file.tokenize_user:
             continue
-        await update_file(db, {'id': db_file.id}, {'$set': {'tokenize_status': '0'}})
+        await update_file(db, {'id': db_file.id}, {'$set': {'tokenize_status': '0', 'tokenize_user': user.id}})
         resp = celery_app.send_task('worker:origin_tokenize', args=[db_file.id, user.id], queue='tibetan',
                                     routing_key='tibetan')
         if is_async is False and len(file_ids) == 1:
