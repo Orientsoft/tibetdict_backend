@@ -499,8 +499,8 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
     words = []
     data_file = await get_file_list(db, {'id': {'$in': ids}, 'is_check': True})
     for db_file in data_file:
-        if db_file.user_id != user.id and user.id != SHARE_USER_ID:
-            continue
+        # if db_file.user_id != user.id and user.id != SHARE_USER_ID:
+        #     continue
         try:
             content = m.get_object(db_file.parsed)
         except:
