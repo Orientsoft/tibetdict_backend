@@ -12,7 +12,7 @@ def colouration(word_stat_in_content, num: int = 6):
     # 得到每种频率
     frequency = list(set(word_stat_in_content.values()))
     frequency.sort(reverse=True)
-    step = len(frequency) / num
+    step = int(len(frequency) / num)
     for x in range(len(frequency)):
         # 是否整除不影响结果
         if x < step:

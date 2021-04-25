@@ -85,7 +85,7 @@ async def get_file_content(file_id: str, is_origin: bool = False,
     for r in temp_content:
         if r.replace(' ', '') == '':
             continue
-        returnObj['content'].append({'seq': seq, 'sentence': f"{r.strip()} "})
+        returnObj['content'].append({'seq': seq, 'sentence': r})
         seq = seq + 1
     returnObj['file_name'] = db_file.file_name
     returnObj['is_check'] = db_file.is_check
