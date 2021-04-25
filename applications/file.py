@@ -376,7 +376,7 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
             "bool": {
                 "must": [
                     # {"match_phrase": {"content": search}},
-                    {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
+                    {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ]?[་| |།].*"}}},
                     {"term": {"user_id": user.id if origin == OriginEnum.private else SHARE_USER_ID}},
                 ]
             }

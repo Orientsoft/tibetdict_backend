@@ -332,7 +332,7 @@ async def word_sort(content: List = Body(..., embed=True),
     word_index_data = await get_word_stat_dict_list(db, {'type': 'word'}, 1, count)
     index_obj = {}
     for w in word_index_data:
-        index_obj[w.word] = w.nature
+        index_obj[w.word] = w.nature.zfill(10)
 
     result = []
     fail_result = []
