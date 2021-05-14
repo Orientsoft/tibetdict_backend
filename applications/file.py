@@ -511,17 +511,28 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
         temp_content = content.decode('utf-8').replace('\r', '').replace('\n', '').replace('\t', ' ').split(' ')
         words += temp_content
     # 藏语判断
+    file_words = []
+    for w in words:
+        if w.endswith('་') or w.endswith('།'):
+            file_words.append(w[:-1])
+        else:
+            file_words.append(w)
     # words = list(filter(judge_word, words))
     # 新词词库
     count = await count_word_stat_dict_by_query(db, {'type': 'used'})
     db_word_data = await get_word_stat_dict_list(db, {'type': 'used'}, 1, count)
     db_words = []
     for d in db_word_data:
-        db_words.append(d.word)
+        if d.word.endswith('་') or d.word.endswith('།'):
+            db_words.append(d.word[:-1])
+        else:
+            db_words.append(d.word)
     if type == 'new':
-        export_word_list = list(set(words).difference(set(db_words)))
+        export_word_list = list(set(file_words).difference(set(db_words)))
     else:
-        export_word_list = list(set(words))
+        export_word_list = list(set(file_words))
+    exclued_word = ['།།', '།', '༑', '[', '༼', '༽', ']', '༄', '༅']
+    export_word_list = list(set(export_word_list).difference(set(exclued_word)))
     if not os.path.exists('temp'):
         os.mkdir('temp')
     file_path = f'temp/tokenize-word-{datetime.now(tz=timezone).isoformat()[:10]}.txt'
