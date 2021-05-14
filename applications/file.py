@@ -14,6 +14,7 @@ import uuid
 import json
 from zipfile import ZipFile
 from bs4 import BeautifulSoup
+import string
 
 from model.user import User
 from common.jwt import get_current_user_authorizer
@@ -532,6 +533,8 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
     else:
         export_word_list = list(set(file_words))
     exclued_word = ['།།', '།', '༑', '[', '༼', '༽', ']', '༄', '༅']
+    for i in string.ascii_letters + string.digits:
+        exclued_word.append(i)
     export_word_list = list(set(export_word_list).difference(set(exclued_word)))
     if not os.path.exists('temp'):
         os.mkdir('temp')

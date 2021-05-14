@@ -23,6 +23,7 @@ from common.worker import celery_app
 from common.utils import colouration
 import re
 import os
+import string
 
 router = APIRouter()
 
@@ -234,8 +235,13 @@ async def work_new_result(work_id: str = Body(...), result: List = Body(...), co
         update_obj[_result_key] = list(result)
         m.commit(context.encode('utf-8'), f'result/{calc_type}/{db_work_history.user_id}/{work_id}.txt')
         if is_save_to_dict:
+            exclued_word = ['།།', '།', '༑', '[', '༼', '༽', ']', '༄', '༅']
+            for i in string.ascii_letters + string.digits:
+                exclued_word.append(i)
             for r in result:
                 word = r.get('word')
+                if word in exclued_word:
+                    continue
                 _id = r.get('id')
                 temp_data = SelfDictCreateModel(
                     id=_id,
