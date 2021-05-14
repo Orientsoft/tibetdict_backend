@@ -108,7 +108,8 @@ async def patch_file(file_id: str = Body(...), content: str = Body(None), is_che
     #     raise HTTPException(HTTP_400_BAD_REQUEST, '40005')
     update_obj = {}
     # 确认校验前提，1.文件本身未校验，2.分词者为空或分词者是本人
-    if is_check is True and db_file.is_check is False and (db_file.tokenize_user is None or db_file.tokenize_user == user.id):
+    if is_check is True and db_file.is_check is False and (
+            db_file.tokenize_user is None or db_file.tokenize_user == user.id):
         # 本次无内容且db中也无内容
         if content is None and db_file.parsed is None:
             raise HTTPException(HTTP_400_BAD_REQUEST, '40018')
@@ -376,7 +377,8 @@ async def search_file(search: str = Body(...), origin: OriginEnum = Body(...), p
             "bool": {
                 "must": [
                     # {"match_phrase": {"content": search}},
-                    {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ]?[་| |།].*"}}},
+                    # {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ]?[་| |།].*"}}},
+                    {"regexp": {"content": {"value": f".*[་| |།|】|\]]{search}[་| |།|】|\]].*"}}},
                     {"term": {"user_id": user.id if origin == OriginEnum.private else SHARE_USER_ID}},
                 ]
             }
@@ -455,7 +457,8 @@ async def search_file_content(file_id: str = Body(...), search: str = Body(...),
             "bool": {
                 "must": [
                     # {"match_phrase": {"content": search}},
-                    {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
+                    # {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
+                    {"regexp": {"content": {"value": f".*[་| |།|】|\]]{search}[་| |།|】|\]].*"}}},
                     {"term": {"id": file_id}},
                 ]
             }
@@ -508,7 +511,7 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
         temp_content = content.decode('utf-8').replace('\r', '').replace('\n', '').replace('\t', ' ').split(' ')
         words += temp_content
     # 藏语判断
-    words = list(filter(judge_word, words))
+    # words = list(filter(judge_word, words))
     # 新词词库
     count = await count_word_stat_dict_by_query(db, {'type': 'used'})
     db_word_data = await get_word_stat_dict_list(db, {'type': 'used'}, 1, count)

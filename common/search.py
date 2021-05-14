@@ -1,5 +1,5 @@
 from elasticsearch import Elasticsearch
-from config import ES_NAME, ES_PASSWD, ES_PORT, ES_URL
+from config import ES_NAME, ES_PASSWD, ES_PORT, ES_URL,ES_INDEX
 
 es = Elasticsearch([ES_URL], http_auth=(ES_NAME, ES_PASSWD), port=ES_PORT)
 
@@ -164,3 +164,15 @@ if __name__ == '__main__':
     # import codecs
     # with codecs.open('/Users/wangbilin/Desktop/test.txt', 'r', encoding='utf-8',errors='ignore') as fdata:
     #     print(fdata.read())
+    search='བཞི་ཚ'
+    queryObj = {
+        "bool": {
+            "must": [
+                # {"match_phrase": {"content": search}},
+                # {"regexp": {"content": {"value": f".*{search}[འི|འུ|འོ|ས|ར]?[་| |།].*"}}},
+                {"regexp": {"content": {"value": f".*[་| |།|】|\]]{search}[་| |།|】|\]].*"}}},
+            ]
+        }
+    }
+    result = query_es(index=ES_INDEX, queryObj=queryObj, start=0, size=10000)
+    print(result)

@@ -47,8 +47,8 @@ async def get_dict(user_id: str = None, search: str = None, page: int = 1, limit
         u_id = user.id
     query_obj = {'user_id': u_id}
     if search is not None:
-        if not search.endswith('་'):
-            search = f'{search}་'
+        # if not search.endswith('་'):
+        #     search = f'{search}་'
         search = re.compile(re.escape(search))
         query_obj['$or'] = [{'word': {'$regex': search}}]
     if is_check is not None:

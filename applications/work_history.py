@@ -21,7 +21,6 @@ from crud.self_dict import count_self_dict_by_query, get_self_dict_list, delete_
 from crud.word_dict import get_word_stat_dict_list, count_word_stat_dict_by_query
 from common.worker import celery_app
 from common.utils import colouration
-from common.search import query_es
 import re
 import os
 
