@@ -30,7 +30,7 @@ from model.file import FileCreateModel, OriginEnum, UploadFailedModel
 from common.upload import MinioUploadPrivate
 from common.common import contenttomd5, tokenize_sentence, judge_word
 from common.search import bulk, delete_es_by_fileid
-from config import ES_INDEX, timezone, SHARE_USER_ID
+from config import ES_INDEX, timezone, SHARE_USER_ID, EXCLUED_WORD
 from datetime import datetime
 from common.cache import get_cache, set_cache, del_cache
 import sys
@@ -532,7 +532,7 @@ async def post_tokenize_export(ids: List[str] = Body(...), type: str = Body('new
         export_word_list = list(set(file_words).difference(set(db_words)))
     else:
         export_word_list = list(set(file_words))
-    exclued_word = ['།།', '།', '༑', '[', '༼', '༽', ']', '༄', '༅']
+    exclued_word = EXCLUED_WORD
     for i in string.ascii_letters + string.digits:
         exclued_word.append(i)
     export_word_list = list(set(export_word_list).difference(set(exclued_word)))

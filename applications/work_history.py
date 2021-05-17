@@ -6,7 +6,7 @@ from collections import Counter
 from fastapi_plugins import depends_redis
 from aioredis import Redis
 from datetime import datetime
-from config import timezone, max_limit, API_KEY, ES_INDEX
+from config import timezone, max_limit, API_KEY, ES_INDEX,EXCLUED_WORD
 from model.user import User
 from model.work_history import WorkHistoryCreateModel, WorkTypeEnum
 from model.self_dict import SelfDictCreateModel
@@ -235,7 +235,7 @@ async def work_new_result(work_id: str = Body(...), result: List = Body(...), co
         update_obj[_result_key] = list(result)
         m.commit(context.encode('utf-8'), f'result/{calc_type}/{db_work_history.user_id}/{work_id}.txt')
         if is_save_to_dict:
-            exclued_word = ['།།', '།', '༑', '[', '༼', '༽', ']', '༄', '༅']
+            exclued_word = EXCLUED_WORD
             for i in string.ascii_letters + string.digits:
                 exclued_word.append(i)
             for r in result:
